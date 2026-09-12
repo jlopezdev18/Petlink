@@ -1,0 +1,28 @@
+<div class="auth-shell">
+  <header class="topbar">
+    <a class="brand" routerLink="/login" aria-label="PetLink, inicio de sesión">
+      <span class="brand-mark" aria-hidden="true">
+        <mat-icon class="heart-icon">favorite_border</mat-icon>
+        <mat-icon class="pet-icon">pets</mat-icon>
+      </span>
+      <span>PetLink</span>
+    </a>
+  </header>
+
+  <main class="auth-layout">
+    <section class="pet-visual" aria-label="Un perro y un gato, compañeros de PetLink">
+      <img
+        src="petlink-auth-pets.png"
+        alt="Un golden retriever y un gato atigrado sentados juntos"
+      />
+      <span class="paw-decoration paw-one" aria-hidden="true">
+        <mat-icon>pets</mat-icon>
+      </span>
+      <span class="paw-decoration paw-two" aria-hidden="true">
+        <mat-icon>favorite</mat-icon>
+      </span>
+    </section>
+
+    <ng-content />
+  </main>
+</div>

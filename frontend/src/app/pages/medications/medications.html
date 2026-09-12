@@ -1,0 +1,158 @@
+<div class="dashboard-shell">
+  <app-sidebar />
+
+  <main class="dashboard-content" aria-label="Medicamentos">
+    <section class="page-header">
+      <div>
+        <p class="eyebrow">PetLink</p>
+        <h1>Medicamentos</h1>
+        <p class="summary">Gestiona tratamientos activos e historicos por mascota.</p>
+      </div>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Mascota</mat-label>
+        <mat-icon matPrefix>pets</mat-icon>
+        <mat-select [value]="selectedPetId()" (selectionChange)="changePet($event.value)">
+          @for (pet of pets(); track pet.id) {
+            <mat-option [value]="pet.id">{{ pet.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </section>
+
+    @if (feedback()) {
+      <p class="feedback" role="status">{{ feedback() }}</p>
+    }
+
+    @if (loading()) {
+      <section class="loading-state" aria-label="Cargando medicamentos">
+        <mat-progress-spinner diameter="46" mode="indeterminate" />
+      </section>
+    } @else {
+      @if (canManageSelectedPet()) {
+        <section class="tool-panel" aria-labelledby="medication-form-title">
+          <h2 id="medication-form-title">{{ editingMedication() ? 'Editar medicamento' : 'Agregar medicamento' }}</h2>
+
+          <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+            <div class="form-grid">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Nombre</mat-label>
+                <mat-icon matPrefix>medication</mat-icon>
+                <input matInput type="text" formControlName="name" />
+                @if (form.controls.name.hasError('required')) {
+                  <mat-error>Ingresa el nombre.</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Dosis</mat-label>
+                <mat-icon matPrefix>vaccines</mat-icon>
+                <input matInput type="text" formControlName="dosage" placeholder="Ej. 1 tableta" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Frecuencia</mat-label>
+                <mat-icon matPrefix>schedule</mat-icon>
+                <input matInput type="text" formControlName="frequency" placeholder="Ej. Cada 12 horas" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Veterinario</mat-label>
+                <mat-icon matPrefix>badge</mat-icon>
+                <input matInput type="text" formControlName="prescribingVet" placeholder="Opcional" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Inicio</mat-label>
+                <mat-icon matPrefix>event</mat-icon>
+                <input matInput type="date" formControlName="startDate" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Fin</mat-label>
+                <mat-icon matPrefix>event_available</mat-icon>
+                <input matInput type="date" formControlName="endDate" />
+              </mat-form-field>
+
+              <mat-form-field class="wide-field" appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Instrucciones</mat-label>
+                <mat-icon matPrefix>edit_note</mat-icon>
+                <textarea matInput rows="3" formControlName="instructions"></textarea>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              @if (editingMedication()) {
+                <button mat-button type="button" [disabled]="submitting()" (click)="cancelEdit()">Cancelar</button>
+              }
+              <button mat-flat-button class="primary-action" type="submit" [disabled]="submitting()">
+                <mat-icon>save</mat-icon>
+                <span>{{ editingMedication() ? 'Guardar cambios' : 'Guardar medicamento' }}</span>
+              </button>
+            </div>
+          </form>
+        </section>
+      }
+
+      <section class="list-section" aria-label="Listado de medicamentos">
+        @if (loadingMedications()) {
+          <div class="inline-loading">
+            <mat-progress-spinner diameter="34" mode="indeterminate" />
+          </div>
+        } @else {
+          <div class="item-grid">
+            @for (medication of medications(); track medication.id) {
+              <article class="item-card" [class.inactive]="!medication.isActive">
+                <div class="card-heading">
+                  <div>
+                    <h2>{{ medication.name }}</h2>
+                    <p>{{ medication.dosage }} - {{ medication.frequency }}</p>
+                  </div>
+                  <span class="status-pill">{{ medication.isActive ? 'Activo' : 'Inactivo' }}</span>
+                </div>
+
+                <dl>
+                  <div>
+                    <dt>Inicio</dt>
+                    <dd>{{ medication.startDate }}</dd>
+                  </div>
+                  <div>
+                    <dt>Fin</dt>
+                    <dd>{{ medication.endDate || 'Sin definir' }}</dd>
+                  </div>
+                  <div>
+                    <dt>Veterinario</dt>
+                    <dd>{{ medication.prescribingVet || 'Sin registrar' }}</dd>
+                  </div>
+                </dl>
+
+                @if (medication.instructions) {
+                  <p class="notes">{{ medication.instructions }}</p>
+                }
+
+                @if (canManageSelectedPet()) {
+                  <div class="card-actions">
+                    <button mat-stroked-button type="button" [disabled]="submitting()" (click)="editMedication(medication)">
+                      <mat-icon>edit</mat-icon>
+                      <span>Editar</span>
+                    </button>
+                    <button mat-button type="button" [disabled]="submitting()" (click)="toggleMedication(medication)">
+                      <mat-icon>{{ medication.isActive ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+                      <span>{{ medication.isActive ? 'Desactivar' : 'Activar' }}</span>
+                    </button>
+                  </div>
+                }
+              </article>
+            } @empty {
+              <div class="empty-state">
+                <mat-icon>medication</mat-icon>
+                <h2>No hay medicamentos</h2>
+                <p>Agrega el primer tratamiento para esta mascota.</p>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
+  </main>
+</div>

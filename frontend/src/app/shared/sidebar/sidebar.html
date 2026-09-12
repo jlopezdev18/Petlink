@@ -1,0 +1,103 @@
+<header class="mobile-dashboard-bar">
+  <button
+    mat-icon-button
+    type="button"
+    aria-label="Abrir menú principal"
+    [attr.aria-expanded]="mobileMenuOpen()"
+    (click)="toggleMobileMenu()"
+  >
+    <mat-icon>menu</mat-icon>
+  </button>
+
+  <div class="mobile-brand" aria-label="PetLink">
+    <span class="brand-mark" aria-hidden="true">
+      <mat-icon class="heart-icon">favorite_border</mat-icon>
+      <mat-icon class="pet-icon">pets</mat-icon>
+    </span>
+    <span>PetLink</span>
+  </div>
+</header>
+
+@if (mobileMenuOpen()) {
+  <button
+    class="menu-backdrop"
+    type="button"
+    aria-label="Cerrar menú principal"
+    (click)="closeMobileMenu()"
+  ></button>
+}
+
+<aside class="sidebar" [class.open]="mobileMenuOpen()">
+  <div class="sidebar-brand">
+    <span class="brand-mark large" aria-hidden="true">
+      <mat-icon class="heart-icon">favorite_border</mat-icon>
+      <mat-icon class="pet-icon">pets</mat-icon>
+    </span>
+    <span>PetLink</span>
+  </div>
+
+  <nav class="sidebar-nav" aria-label="Menú principal">
+    <a
+      class="nav-item"
+      routerLink="/inicio"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: true }"
+      (click)="closeMobileMenu()"
+    >
+      <mat-icon>home</mat-icon>
+      <span>Inicio</span>
+    </a>
+    <a
+      class="nav-item"
+      routerLink="/mascotas"
+      routerLinkActive="active"
+      (click)="closeMobileMenu()"
+    >
+      <mat-icon>pets</mat-icon>
+      <span>Mascotas</span>
+    </a>
+    <a
+      class="nav-item"
+      routerLink="/cuidadores"
+      routerLinkActive="active"
+      (click)="closeMobileMenu()"
+    >
+      <mat-icon>supervisor_account</mat-icon>
+      <span>Cuidadores</span>
+    </a>
+    <a
+      class="nav-item"
+      routerLink="/medicamentos"
+      routerLinkActive="active"
+      (click)="closeMobileMenu()"
+    >
+      <mat-icon>medication</mat-icon>
+      <span>Medicamentos</span>
+    </a>
+    <a
+      class="nav-item"
+      routerLink="/recetas"
+      routerLinkActive="active"
+      (click)="closeMobileMenu()"
+    >
+      <mat-icon>description</mat-icon>
+      <span>Recetas</span>
+    </a>
+    <a
+      class="nav-item"
+      routerLink="/perfil"
+      routerLinkActive="active"
+      (click)="closeMobileMenu()"
+    >
+      <mat-icon>person_outline</mat-icon>
+      <span>Perfil</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-actions">
+    <button class="nav-item logout-button" type="button" (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      <span>Cerrar sesión</span>
+    </button>
+  </div>
+</aside>

@@ -1,0 +1,246 @@
+:host {
+  --petlink-purple: #6324d6;
+  --petlink-purple-dark: #4b16b1;
+  --petlink-muted: #74758a;
+  --petlink-line: #d9d9e3;
+  display: block;
+  min-height: 100dvh;
+}
+
+.auth-card {
+  width: 100%;
+  min-width: 0;
+  padding: 28px 42px 26px;
+  display: block;
+  background: #ffffff;
+  border: 1px solid #e5e5ec;
+  border-radius: 8px;
+  box-shadow: 0 14px 38px rgba(40, 31, 73, 0.12);
+  box-sizing: border-box;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.card-heading {
+  margin-bottom: 22px;
+  text-align: center;
+}
+
+.card-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: var(--petlink-purple);
+  font-size: 34px;
+  font-weight: 800;
+}
+
+.brand-mark {
+  position: relative;
+  width: 47px;
+  height: 47px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.brand-mark .mat-icon {
+  position: absolute;
+  margin: 0;
+}
+
+.heart-icon {
+  width: 47px;
+  height: 47px;
+  font-size: 47px;
+}
+
+.pet-icon {
+  width: 23px;
+  height: 23px;
+  top: 16px;
+  font-size: 23px;
+}
+
+.card-heading h1 {
+  margin: 8px 0 0;
+  font-size: 17px;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.card-heading p {
+  max-width: 370px;
+  margin: 5px auto 0;
+  color: var(--petlink-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+.field-label {
+  display: block;
+  margin: 0 0 5px;
+  color: #26243a;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+mat-form-field {
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 12px;
+}
+
+:host ::ng-deep .mat-mdc-text-field-wrapper,
+:host ::ng-deep .mat-mdc-form-field-flex,
+:host ::ng-deep .mat-mdc-form-field-infix {
+  min-width: 0;
+}
+
+:host ::ng-deep .mat-mdc-form-field-infix {
+  min-height: 48px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+:host ::ng-deep .mat-mdc-form-field-icon-prefix {
+  padding: 0 10px 0 2px;
+  color: var(--petlink-purple);
+}
+
+:host ::ng-deep .mat-mdc-form-field-icon-suffix {
+  color: #67687c;
+}
+
+.password-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field-block {
+  min-width: 0;
+}
+
+.form-options {
+  min-width: 0;
+  min-height: 36px;
+  margin: -2px 0 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.text-action {
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--petlink-purple);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.text-action:hover {
+  color: var(--petlink-purple-dark);
+  text-decoration: underline;
+}
+
+.text-action.strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.primary-action {
+  width: 100%;
+  height: 44px;
+  margin-top: 2px;
+  border-radius: 5px;
+  background: var(--petlink-purple) !important;
+  color: #ffffff !important;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.primary-action:hover {
+  background: var(--petlink-purple-dark) !important;
+}
+
+.terms {
+  margin: -3px 0 2px;
+}
+
+.field-error {
+  margin: -2px 0 8px 16px;
+  color: #ba1a1a;
+  font-size: 12px;
+}
+
+.feedback {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--petlink-purple);
+  background: #f5f0ff;
+  color: #43335e;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.auth-switch {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--petlink-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+@media (max-width: 980px) {
+  .auth-card {
+    padding-inline: 32px;
+  }
+}
+
+@media (max-width: 760px) {
+  .auth-card {
+    width: auto;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 26px 24px 24px;
+  }
+}
+
+@media (max-width: 500px) {
+  .card-brand {
+    font-size: 30px;
+  }
+
+  .password-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .form-options,
+  .auth-switch {
+    flex-wrap: wrap;
+  }
+
+  .form-options .text-action {
+    max-width: 190px;
+    white-space: normal;
+    text-align: right;
+  }
+}

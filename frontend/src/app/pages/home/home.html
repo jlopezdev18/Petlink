@@ -1,0 +1,41 @@
+<div class="dashboard-shell">
+  <app-sidebar />
+
+  <main class="dashboard-content" aria-label="Inicio">
+    <section class="welcome-panel" aria-labelledby="home-title">
+      <div>
+        <p class="eyebrow">PetLink</p>
+
+        @if (loading()) {
+          <div class="welcome-loading">
+            <mat-progress-spinner diameter="34" mode="indeterminate" />
+          </div>
+        } @else {
+          <h1 id="home-title">Hi, {{ firstName() }}</h1>
+        }
+
+        <p class="summary">Bienvenido a tu espacio para cuidar mascotas.</p>
+      </div>
+
+      <div class="quick-actions" aria-label="Accesos rapidos">
+        <a mat-flat-button class="primary-action" routerLink="/mascotas">
+          <mat-icon>pets</mat-icon>
+          <span>Mascotas</span>
+        </a>
+        <a mat-stroked-button routerLink="/perfil">
+          <mat-icon>person_outline</mat-icon>
+          <span>Perfil</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="home-grid" aria-label="Resumen">
+      <article>
+        <mat-icon>favorite_border</mat-icon>
+        <h2>Cuidado centralizado</h2>
+        <p>Consulta y actualiza la informacion importante desde un solo lugar.</p>
+      </article>
+
+    </section>
+  </main>
+</div>

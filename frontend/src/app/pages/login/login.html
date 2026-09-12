@@ -1,0 +1,79 @@
+<app-auth-layout>
+  <section class="auth-card">
+  <div class="card-heading">
+    <div class="card-brand">
+      <span class="brand-mark" aria-hidden="true">
+        <mat-icon class="heart-icon">favorite_border</mat-icon>
+        <mat-icon class="pet-icon">pets</mat-icon>
+      </span>
+      <span>PetLink</span>
+    </div>
+    <h1>Cuida a quienes te acompañan siempre</h1>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <label class="field-label" for="login-email">Correo electrónico</label>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-icon matPrefix>mail_outline</mat-icon>
+      <input
+        id="login-email"
+        matInput
+        type="email"
+        formControlName="email"
+        placeholder="Ingresa tu correo electrónico"
+        autocomplete="email"
+      />
+      @if (form.controls.email.hasError('required')) {
+        <mat-error>Ingresa tu correo electrónico.</mat-error>
+      } @else if (form.controls.email.hasError('email')) {
+        <mat-error>Ingresa un correo válido.</mat-error>
+      }
+    </mat-form-field>
+
+    <label class="field-label" for="login-password">Contraseña</label>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-icon matPrefix>lock_outline</mat-icon>
+      <input
+        id="login-password"
+        matInput
+        [type]="hidePassword() ? 'password' : 'text'"
+        formControlName="password"
+        placeholder="Ingresa tu contraseña"
+        autocomplete="current-password"
+      />
+      <button
+        mat-icon-button
+        matSuffix
+        type="button"
+        [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+        (click)="hidePassword.set(!hidePassword())"
+      >
+        <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+      </button>
+      @if (form.controls.password.hasError('required')) {
+        <mat-error>Ingresa tu contraseña.</mat-error>
+      } @else if (form.controls.password.hasError('minlength')) {
+        <mat-error>La contraseña debe tener al menos 6 caracteres.</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="form-options">
+      <mat-checkbox formControlName="remember">Recordarme</mat-checkbox>
+      <button class="text-action" type="button" (click)="showRecoveryMessage()">
+        ¿Olvidaste tu contraseña?
+      </button>
+    </div>
+
+    <button mat-flat-button class="primary-action" type="submit">Iniciar sesión</button>
+  </form>
+
+  @if (feedback()) {
+    <p class="feedback" role="status">{{ feedback() }}</p>
+  }
+
+  <div class="auth-switch">
+    <span>¿No tienes cuenta?</span>
+    <a class="text-action strong" routerLink="/registro">Regístrate</a>
+  </div>
+  </section>
+</app-auth-layout>

@@ -1,0 +1,145 @@
+<div class="dashboard-shell">
+  <app-sidebar />
+
+  <main class="dashboard-content" aria-label="Cuidadores autorizados">
+    <section class="page-header">
+      <div>
+        <p class="eyebrow">PetLink</p>
+        <h1>Cuidadores</h1>
+        <p class="summary">Autoriza usuarios registrados para apoyar el cuidado de tus mascotas.</p>
+      </div>
+    </section>
+
+    @if (feedback()) {
+      <p class="feedback" role="status">{{ feedback() }}</p>
+    }
+
+    @if (loading()) {
+      <section class="loading-state" aria-label="Cargando cuidadores">
+        <mat-progress-spinner diameter="46" mode="indeterminate" />
+      </section>
+    } @else {
+      <section class="tool-panel" aria-labelledby="caregiver-form-title">
+        <h2 id="caregiver-form-title">{{ editingCaregiver() ? 'Editar permisos' : 'Autorizar cuidador' }}</h2>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="form-grid">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Mascota</mat-label>
+              <mat-icon matPrefix>pets</mat-icon>
+              <mat-select formControlName="petId">
+                @for (pet of ownerPets(); track pet.id) {
+                  <mat-option [value]="pet.id">{{ pet.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Email del cuidador</mat-label>
+              <mat-icon matPrefix>alternate_email</mat-icon>
+              <input matInput type="email" formControlName="caregiverEmail" autocomplete="off" />
+              @if (form.controls.caregiverEmail.hasError('required')) {
+                <mat-error>Ingresa un email.</mat-error>
+              } @else if (form.controls.caregiverEmail.hasError('email')) {
+                <mat-error>Email inválido.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Permisos</mat-label>
+              <mat-icon matPrefix>admin_panel_settings</mat-icon>
+              <mat-select formControlName="preset">
+                <mat-option value="viewer">Solo ver</mat-option>
+                <mat-option value="caregiver">Cuidador</mat-option>
+                <mat-option value="veterinarian">Veterinario</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Notas</mat-label>
+              <mat-icon matPrefix>edit_note</mat-icon>
+              <input matInput type="text" formControlName="notes" placeholder="Opcional" />
+            </mat-form-field>
+          </div>
+
+          <div class="form-actions">
+            @if (editingCaregiver()) {
+              <button mat-button type="button" [disabled]="submitting()" (click)="cancelEdit()">Cancelar</button>
+            }
+            <button mat-flat-button class="primary-action" type="submit" [disabled]="submitting() || ownerPets().length === 0">
+              <mat-icon>save</mat-icon>
+              <span>{{ editingCaregiver() ? 'Guardar permisos' : 'Autorizar' }}</span>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="list-section" aria-label="Cuidadores autorizados">
+        <h2>Accesos otorgados</h2>
+
+        <div class="item-grid">
+          @for (caregiver of ownedAccess(); track caregiver.id) {
+            <article class="item-card">
+              <div>
+                <h3>{{ caregiver.caregiverName }}</h3>
+                <p>{{ caregiver.caregiverEmail || 'Sin email' }}</p>
+              </div>
+              <dl>
+                <div>
+                  <dt>Mascota</dt>
+                  <dd>{{ caregiver.petName }}</dd>
+                </div>
+                <div>
+                  <dt>Permisos</dt>
+                  <dd>{{ presetLabel(caregiver.preset) }}</dd>
+                </div>
+              </dl>
+              @if (caregiver.notes) {
+                <p class="notes">{{ caregiver.notes }}</p>
+              }
+              <div class="card-actions">
+                <button mat-stroked-button type="button" [disabled]="submitting()" (click)="editCaregiver(caregiver)">
+                  <mat-icon>edit</mat-icon>
+                  <span>Editar</span>
+                </button>
+                <button mat-button type="button" class="danger-action" [disabled]="submitting()" (click)="revokeCaregiver(caregiver)">
+                  <mat-icon>person_remove</mat-icon>
+                  <span>Revocar</span>
+                </button>
+              </div>
+            </article>
+          } @empty {
+            <div class="empty-state">
+              <mat-icon>supervisor_account</mat-icon>
+              <h2>No hay cuidadores autorizados</h2>
+              <p>Agrega un usuario registrado para compartir el cuidado de una mascota.</p>
+            </div>
+          }
+        </div>
+      </section>
+
+      @if (receivedAccess().length > 0) {
+        <section class="list-section" aria-label="Mascotas compartidas contigo">
+          <h2>Compartidas contigo</h2>
+
+          <div class="item-grid">
+            @for (caregiver of receivedAccess(); track caregiver.id) {
+              <article class="item-card compact">
+                <div>
+                  <h3>{{ caregiver.petName }}</h3>
+                  <p>{{ caregiver.ownerName }} - {{ presetLabel(caregiver.preset) }}</p>
+                </div>
+                <div class="card-actions">
+                  <button mat-button type="button" class="danger-action" [disabled]="submitting()" (click)="revokeCaregiver(caregiver)">
+                    <mat-icon>logout</mat-icon>
+                    <span>Salir</span>
+                  </button>
+                </div>
+              </article>
+            }
+          </div>
+        </section>
+      }
+    }
+  </main>
+</div>

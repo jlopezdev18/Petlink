@@ -1,0 +1,87 @@
+<div class="dashboard-shell">
+  <app-sidebar />
+
+  <main class="dashboard-content" aria-label="Perfil">
+    <section class="page-header">
+      <div>
+        <p class="eyebrow">PetLink</p>
+        <h1>Perfil</h1>
+        <p class="summary">Datos de tu cuenta y contacto.</p>
+      </div>
+    </section>
+
+    @if (feedback()) {
+      <p class="feedback" role="status">{{ feedback() }}</p>
+    }
+
+    @if (loading()) {
+      <section class="profile-loading" aria-label="Cargando perfil">
+        <mat-progress-spinner diameter="46" mode="indeterminate" />
+      </section>
+    } @else {
+      <section class="profile-layout">
+        <aside class="profile-summary" aria-label="Resumen del perfil">
+          <div class="avatar-frame">
+            @if (form.controls.avatarUrl.value) {
+              <img [src]="form.controls.avatarUrl.value" alt="Avatar del perfil" />
+            } @else {
+              <span>{{ initials() }}</span>
+            }
+          </div>
+
+          <div>
+            <h2>{{ form.controls.fullName.value || 'Tu perfil' }}</h2>
+            <p>{{ profile()?.email || 'Correo no disponible' }}</p>
+          </div>
+
+          <dl>
+            <div>
+              <dt>Telefono</dt>
+              <dd>{{ form.controls.phone.value || 'Sin registrar' }}</dd>
+            </div>
+            <div>
+              <dt>ID de usuario</dt>
+              <dd>{{ profile()?.id }}</dd>
+            </div>
+          </dl>
+        </aside>
+
+        <section class="profile-form-panel" aria-labelledby="profile-form-title">
+          <h2 id="profile-form-title">Informacion personal</h2>
+
+          <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Nombre completo</mat-label>
+              <mat-icon matPrefix>badge</mat-icon>
+              <input matInput type="text" formControlName="fullName" autocomplete="name" />
+              @if (form.controls.fullName.hasError('required')) {
+                <mat-error>Ingresa tu nombre.</mat-error>
+              } @else if (form.controls.fullName.hasError('minlength')) {
+                <mat-error>Usa al menos 2 caracteres.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Telefono</mat-label>
+              <mat-icon matPrefix>call</mat-icon>
+              <input matInput type="tel" formControlName="phone" autocomplete="tel" placeholder="Opcional" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>URL de avatar</mat-label>
+              <mat-icon matPrefix>image</mat-icon>
+              <input matInput type="url" formControlName="avatarUrl" placeholder="Opcional" />
+            </mat-form-field>
+
+            <div class="form-actions">
+              <button mat-flat-button class="save-button" type="submit" [disabled]="submitting()">
+                <mat-icon>save</mat-icon>
+                <span>{{ submitting() ? 'Guardando...' : 'Guardar perfil' }}</span>
+              </button>
+            </div>
+          </form>
+        </section>
+      </section>
+    }
+  </main>
+</div>

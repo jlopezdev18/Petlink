@@ -1,0 +1,164 @@
+<div class="dashboard-shell">
+  <app-sidebar />
+
+  <main class="dashboard-content" aria-label="Recetas digitales">
+    <section class="page-header">
+      <div>
+        <p class="eyebrow">PetLink</p>
+        <h1>Recetas</h1>
+        <p class="summary">Sube recetas privadas para tus mascotas.</p>
+      </div>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Mascota propia</mat-label>
+        <mat-icon matPrefix>pets</mat-icon>
+        <mat-select [value]="selectedPetId()" (selectionChange)="changePet($event.value)">
+          @for (pet of ownerPets(); track pet.id) {
+            <mat-option [value]="pet.id">{{ pet.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </section>
+
+    @if (feedback()) {
+      <p class="feedback" role="status">{{ feedback() }}</p>
+    }
+
+    @if (loading()) {
+      <section class="loading-state" aria-label="Cargando recetas">
+        <mat-progress-spinner diameter="46" mode="indeterminate" />
+      </section>
+    } @else {
+      <section class="tool-panel" aria-labelledby="prescription-form-title">
+        <h2 id="prescription-form-title">{{ editingPrescription() ? 'Editar receta' : 'Subir receta' }}</h2>
+
+        <form [formGroup]="form" (ngSubmit)="submit(fileInput)" novalidate>
+          <div class="form-grid">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Titulo</mat-label>
+              <mat-icon matPrefix>description</mat-icon>
+              <input matInput type="text" formControlName="title" />
+              @if (form.controls.title.hasError('required')) {
+                <mat-error>Ingresa un titulo.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Medicamento</mat-label>
+              <mat-icon matPrefix>medication</mat-icon>
+              <mat-select formControlName="medicationId">
+                <mat-option value="">Sin medicamento</mat-option>
+                @for (medication of medications(); track medication.id) {
+                  <mat-option [value]="medication.id">{{ medication.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Emitida por</mat-label>
+              <mat-icon matPrefix>badge</mat-icon>
+              <input matInput type="text" formControlName="prescribedBy" placeholder="Opcional" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Fecha</mat-label>
+              <mat-icon matPrefix>event</mat-icon>
+              <input matInput type="date" formControlName="issuedOn" />
+            </mat-form-field>
+
+            <mat-form-field class="wide-field" appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Notas</mat-label>
+              <mat-icon matPrefix>edit_note</mat-icon>
+              <textarea matInput rows="3" formControlName="notes"></textarea>
+            </mat-form-field>
+          </div>
+
+          <div class="file-row">
+            <input
+              #fileInput
+              class="file-input"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              (change)="selectFile($event)"
+            />
+            <button mat-stroked-button type="button" (click)="fileInput.click()">
+              <mat-icon>upload_file</mat-icon>
+              <span>Elegir archivo</span>
+            </button>
+            <span>{{ selectedFile()?.name || (editingPrescription() ? 'Mantener archivo actual' : 'PDF o imagen') }}</span>
+          </div>
+
+          <div class="form-actions">
+            @if (editingPrescription()) {
+              <button mat-button type="button" [disabled]="submitting()" (click)="cancelEdit(fileInput)">Cancelar</button>
+            }
+            <button mat-flat-button class="primary-action" type="submit" [disabled]="submitting() || ownerPets().length === 0">
+              <mat-icon>save</mat-icon>
+              <span>{{ editingPrescription() ? 'Guardar receta' : 'Subir receta' }}</span>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="list-section" aria-label="Listado de recetas">
+        @if (loadingPrescriptions()) {
+          <div class="inline-loading">
+            <mat-progress-spinner diameter="34" mode="indeterminate" />
+          </div>
+        } @else {
+          <div class="item-grid">
+            @for (prescription of prescriptions(); track prescription.id) {
+              <article class="item-card">
+                <div class="card-heading">
+                  <div>
+                    <h2>{{ prescription.title }}</h2>
+                    <p>{{ prescription.medicationName || 'Receta general' }}</p>
+                  </div>
+                  <span class="status-pill">{{ fileLabel(prescription) }}</span>
+                </div>
+
+                <dl>
+                  <div>
+                    <dt>Fecha</dt>
+                    <dd>{{ prescription.issuedOn }}</dd>
+                  </div>
+                  <div>
+                    <dt>Emitida por</dt>
+                    <dd>{{ prescription.prescribedBy || 'Sin registrar' }}</dd>
+                  </div>
+                </dl>
+
+                @if (prescription.notes) {
+                  <p class="notes">{{ prescription.notes }}</p>
+                }
+
+                <div class="card-actions">
+                  @if (prescription.fileUrl) {
+                    <a mat-stroked-button [href]="prescription.fileUrl" target="_blank" rel="noreferrer">
+                      <mat-icon>open_in_new</mat-icon>
+                      <span>Ver</span>
+                    </a>
+                  }
+                  <button mat-stroked-button type="button" [disabled]="submitting()" (click)="editPrescription(prescription)">
+                    <mat-icon>edit</mat-icon>
+                    <span>Editar</span>
+                  </button>
+                  <button mat-button type="button" class="danger-action" [disabled]="submitting()" (click)="deletePrescription(prescription)">
+                    <mat-icon>delete_outline</mat-icon>
+                    <span>Eliminar</span>
+                  </button>
+                </div>
+              </article>
+            } @empty {
+              <div class="empty-state">
+                <mat-icon>description</mat-icon>
+                <h2>No hay recetas digitales</h2>
+                <p>Sube una receta en PDF o imagen para esta mascota.</p>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
+  </main>
+</div>

@@ -1,0 +1,268 @@
+<div class="dashboard-shell">
+  <app-sidebar />
+
+  <main class="dashboard-content" aria-label="Mascotas">
+    <section class="page-header">
+      <div>
+        <p class="eyebrow">PetLink</p>
+        <h1>Mascotas</h1>
+        <p class="summary">{{ petCountLabel() }}</p>
+      </div>
+
+      <button mat-flat-button class="add-button" type="button" (click)="toggleForm()">
+        <mat-icon>{{ showForm() ? 'close' : 'add' }}</mat-icon>
+        <span>{{ showForm() ? 'Cancelar' : 'Agregar mascota' }}</span>
+      </button>
+    </section>
+
+    @if (feedback()) {
+      <p class="feedback" role="status">{{ feedback() }}</p>
+    }
+
+    @if (showForm()) {
+      <section class="pet-form-panel" aria-labelledby="pet-form-title">
+        <h2 id="pet-form-title">{{ formTitle() }}</h2>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="photo-uploader">
+            <div class="photo-preview">
+              @if (photoPreview()) {
+                <img [src]="photoPreview()" alt="Vista previa de la mascota" />
+              } @else {
+                <mat-icon>add_a_photo</mat-icon>
+              }
+            </div>
+
+            <div class="photo-actions">
+              <p>Foto de la mascota</p>
+              <input
+                #photoInput
+                class="file-input"
+                type="file"
+                accept="image/*"
+                (change)="selectPhoto($event)"
+              />
+              <button mat-stroked-button type="button" (click)="photoInput.click()">
+                <mat-icon>photo_camera</mat-icon>
+                <span>Elegir foto</span>
+              </button>
+              @if (photoPreview()) {
+                <button mat-button type="button" (click)="removePhoto(photoInput)">Quitar</button>
+              }
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Nombre</mat-label>
+              <mat-icon matPrefix>badge</mat-icon>
+              <input
+                matInput
+                type="text"
+                formControlName="name"
+                placeholder="Ej. Max"
+                autocomplete="off"
+              />
+              @if (form.controls.name.hasError('required')) {
+                <mat-error>Ingresa el nombre.</mat-error>
+              } @else if (form.controls.name.hasError('minlength')) {
+                <mat-error>Usa al menos 2 caracteres.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Especie</mat-label>
+              <mat-icon matPrefix>pets</mat-icon>
+              <mat-select formControlName="species">
+                <mat-option value="Perro">Perro</mat-option>
+                <mat-option value="Gato">Gato</mat-option>
+                <mat-option value="Ave">Ave</mat-option>
+                <mat-option value="Conejo">Conejo</mat-option>
+                <mat-option value="Reptil">Reptil</mat-option>
+                <mat-option value="Pez">Pez</mat-option>
+                <mat-option value="Otro">Otro</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Sexo</mat-label>
+              <mat-icon matPrefix>wc</mat-icon>
+              <mat-select formControlName="sex">
+                <mat-option value="">Opcional</mat-option>
+                <mat-option value="Hembra">Hembra</mat-option>
+                <mat-option value="Macho">Macho</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Raza</mat-label>
+              <mat-icon matPrefix>category</mat-icon>
+              <input matInput type="text" formControlName="breed" placeholder="Opcional" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Color</mat-label>
+              <mat-icon matPrefix>palette</mat-icon>
+              <input matInput type="text" formControlName="color" placeholder="Opcional" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Fecha de nacimiento</mat-label>
+              <mat-icon matPrefix>event</mat-icon>
+              <input matInput type="date" formControlName="birthDate" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Peso en kg</mat-label>
+              <mat-icon matPrefix>monitor_weight</mat-icon>
+              <input matInput type="number" min="0" step="0.1" formControlName="weightKg" />
+              @if (form.controls.weightKg.hasError('min')) {
+                <mat-error>El peso no puede ser negativo.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field class="notes-field" appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Notas</mat-label>
+              <mat-icon matPrefix>edit_note</mat-icon>
+              <textarea
+                matInput
+                rows="3"
+                formControlName="notes"
+                placeholder="Alergias, vacunas, indicaciones..."
+              ></textarea>
+            </mat-form-field>
+          </div>
+
+          <div class="form-actions">
+            <button mat-button type="button" [disabled]="submitting()" (click)="cancelForm()">Cancelar</button>
+            <button mat-flat-button class="save-button" type="submit" [disabled]="submitting() || !hasNewChanges()">
+              <mat-icon>save</mat-icon>
+              <span>{{ saveButtonLabel() }}</span>
+            </button>
+          </div>
+        </form>
+      </section>
+    }
+
+    @if (loading()) {
+      <section class="pets-loading" aria-label="Cargando mascotas">
+        <mat-progress-spinner diameter="46" mode="indeterminate" />
+      </section>
+    } @else {
+      <section class="pets-grid" aria-label="Listado de mascotas">
+        @for (pet of pets(); track pet.id) {
+          <article
+            class="pet-card"
+            [class.female-card]="pet.sex === 'Hembra'"
+            [class.male-card]="pet.sex === 'Macho'"
+          >
+            <div class="card-actions" aria-label="Acciones de mascota">
+              <button
+                mat-icon-button
+                class="edit-card-button"
+                type="button"
+                [attr.aria-label]="'Editar ' + pet.name"
+                (click)="editPet(pet)"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                class="delete-card-button"
+                type="button"
+                [attr.aria-label]="'Eliminar ' + pet.name"
+                (click)="requestDelete(pet)"
+              >
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+
+            <div class="pet-photo">
+              @if (pet.photoUrl) {
+                @if (isPhotoLoading(pet)) {
+                  <mat-progress-spinner class="photo-spinner" diameter="38" mode="indeterminate" />
+                }
+                <img
+                  [class.photo-hidden]="isPhotoLoading(pet)"
+                  [src]="pet.photoUrl"
+                  [alt]="'Foto de ' + pet.name"
+                  (load)="finishPhotoLoad(pet)"
+                  (error)="finishPhotoLoad(pet)"
+                />
+              } @else {
+                <mat-icon aria-hidden="true">{{ pet.species === 'Gato' ? 'cruelty_free' : 'pets' }}</mat-icon>
+              }
+            </div>
+
+            <div class="pet-info">
+              <h2>{{ pet.name }}</h2>
+              <p>{{ pet.species }}{{ pet.breed ? ' - ' + pet.breed : '' }}</p>
+            </div>
+
+            <dl class="pet-details">
+              <div>
+                <dt>Nacimiento</dt>
+                <dd>{{ pet.birthDate || 'Sin registrar' }}</dd>
+              </div>
+              <div>
+                <dt>Peso</dt>
+                <dd>{{ pet.weightKg ? pet.weightKg + ' kg' : 'Sin registrar' }}</dd>
+              </div>
+              <div>
+                <dt>Sexo</dt>
+                <dd>{{ pet.sex || 'Sin registrar' }}</dd>
+              </div>
+              <div>
+                <dt>Color</dt>
+                <dd>{{ pet.color || 'Sin registrar' }}</dd>
+              </div>
+            </dl>
+
+            @if (pet.notes) {
+              <p class="pet-notes">{{ pet.notes }}</p>
+            }
+          </article>
+        } @empty {
+          <div class="empty-state">
+            <mat-icon>pets</mat-icon>
+            <h2>No hay mascotas registradas</h2>
+            <p>Agrega la primera mascota para empezar su seguimiento.</p>
+          </div>
+        }
+      </section>
+    }
+
+    @if (petPendingDelete(); as pet) {
+      <button
+        class="confirm-backdrop"
+        type="button"
+        aria-label="Cancelar eliminación"
+        [disabled]="deleting()"
+        (click)="cancelDelete()"
+      ></button>
+
+      <section
+        class="confirm-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-pet-title"
+      >
+        <h2 id="delete-pet-title">Eliminar mascota</h2>
+        <p>¿Seguro que deseas eliminar a {{ pet.name }}?</p>
+
+        <div class="confirm-actions">
+          <button mat-button type="button" [disabled]="deleting()" (click)="cancelDelete()">Cancelar</button>
+          <button
+            mat-flat-button
+            class="confirm-delete-button"
+            type="button"
+            [disabled]="deleting()"
+            (click)="confirmDelete()"
+          >
+            <span>{{ deleting() ? 'Eliminando...' : 'Eliminar' }}</span>
+          </button>
+        </div>
+      </section>
+    }
+  </main>
+</div>
