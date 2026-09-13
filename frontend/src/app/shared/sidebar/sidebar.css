@@ -1,6 +1,5 @@
 :host {
-  --petlink-purple: #6324d6;
-  --petlink-purple-dark: #4b16b1;
+  display: block;
 }
 
 * {
@@ -15,9 +14,10 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
-  border-right: 1px solid #e9e7f0;
-  box-shadow: 4px 0 18px rgba(41, 31, 75, 0.05);
+  background: var(--petlink-chrome-bg);
+  border-right: 1px solid var(--petlink-line);
+  box-shadow: var(--petlink-shadow-soft);
+  backdrop-filter: blur(12px);
 }
 
 .sidebar-brand,
@@ -97,7 +97,7 @@
   gap: 16px;
   border-radius: 8px;
   background: transparent;
-  color: #5e6078;
+  color: var(--petlink-muted);
   font-size: 15px;
   text-decoration: none;
   transition: background-color 160ms ease, color 160ms ease;
@@ -105,7 +105,9 @@
 
 .sidebar-actions {
   padding: 18px;
-  border-top: 1px solid #e9e7f0;
+  border-top: 1px solid var(--petlink-line);
+  display: grid;
+  gap: 10px;
 }
 
 .logout-button {
@@ -116,19 +118,36 @@
 }
 
 .nav-item:hover {
-  background: #f7f3ff;
-  color: var(--petlink-purple-dark);
+  background: var(--petlink-nav-hover-bg);
+  color: var(--petlink-purple);
 }
 
 .logout-button:hover {
-  background: #fff2f4;
-  color: #b4233c;
+  background: var(--petlink-danger-bg);
+  color: var(--petlink-danger);
 }
 
 .nav-item.active {
-  background: #f2ecff;
+  background: var(--petlink-nav-active-bg);
   color: var(--petlink-purple);
   font-weight: 700;
+}
+
+.theme-toggle {
+  min-height: 44px;
+  padding: 0 10px;
+  color: var(--petlink-muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.theme-toggle mat-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  color: var(--petlink-purple);
+  font-size: 20px;
+  vertical-align: middle;
 }
 
 .nav-item mat-icon {
@@ -153,9 +172,10 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    background: #ffffff;
-    border-bottom: 1px solid #e9e7f0;
-    box-shadow: 0 3px 14px rgba(41, 31, 75, 0.06);
+    background: var(--petlink-chrome-bg);
+    border-bottom: 1px solid var(--petlink-line);
+    box-shadow: var(--petlink-shadow-soft);
+    backdrop-filter: blur(12px);
   }
 
   .mobile-brand {
@@ -165,7 +185,7 @@
   .sidebar {
     width: min(82vw, 290px);
     transform: translateX(-105%);
-    box-shadow: 12px 0 30px rgba(28, 20, 58, 0.18);
+    box-shadow: var(--petlink-shadow);
     transition: transform 200ms ease;
   }
 
@@ -186,6 +206,6 @@
     display: block;
     padding: 0;
     border: 0;
-    background: rgba(23, 21, 43, 0.34);
+    background: var(--petlink-backdrop-soft);
   }
 }

@@ -1,6 +1,4 @@
 :host {
-  --petlink-purple: #6324d6;
-  --petlink-ink: #17152b;
   display: block;
   min-height: 100dvh;
 }
@@ -11,11 +9,11 @@
 
 .auth-shell {
   min-height: 100dvh;
-  background-color: #f8f8fc;
+  background-color: var(--petlink-bg);
   background-image:
     var(--petlink-paw-pattern),
-    linear-gradient(135deg, rgba(15, 143, 131, 0.08), transparent 34%),
-    linear-gradient(315deg, rgba(99, 36, 214, 0.08), transparent 38%);
+    linear-gradient(135deg, var(--petlink-dashboard-teal-glow), transparent 34%),
+    linear-gradient(315deg, var(--petlink-dashboard-purple-glow), transparent 38%);
   color: var(--petlink-ink);
 }
 
@@ -24,9 +22,12 @@
   padding: 0 clamp(24px, 5vw, 72px);
   display: flex;
   align-items: center;
-  background: #ffffff;
-  border-bottom: 1px solid #ececf2;
-  box-shadow: 0 2px 12px rgba(37, 28, 73, 0.05);
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--petlink-chrome-bg-soft);
+  border-bottom: 1px solid var(--petlink-line);
+  box-shadow: var(--petlink-shadow-soft);
+  backdrop-filter: blur(12px);
 }
 
 .brand {
@@ -37,6 +38,20 @@
   font-size: 25px;
   font-weight: 800;
   text-decoration: none;
+}
+
+.theme-toggle {
+  color: var(--petlink-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.theme-toggle mat-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  font-size: 18px;
+  vertical-align: middle;
 }
 
 .brand-mark {
@@ -89,26 +104,12 @@
   width: min(100%, 600px);
   aspect-ratio: 1;
   object-fit: contain;
-  -webkit-mask-image: radial-gradient(
-    ellipse 56% 56% at 50% 50%,
-    #000 0%,
-    #000 68%,
-    rgba(0, 0, 0, 0.82) 80%,
-    transparent 100%
-  );
-  mask-image: radial-gradient(
-    ellipse 56% 56% at 50% 50%,
-    #000 0%,
-    #000 68%,
-    rgba(0, 0, 0, 0.82) 80%,
-    transparent 100%
-  );
 }
 
 .paw-decoration {
   position: absolute;
-  color: #d8c9f8;
-  opacity: 0.7;
+  color: var(--petlink-purple);
+  opacity: 0.45;
 }
 
 .paw-decoration mat-icon {
@@ -144,6 +145,10 @@
 
   .brand {
     font-size: 22px;
+  }
+
+  .theme-toggle {
+    max-width: 118px;
   }
 
   .auth-layout {
