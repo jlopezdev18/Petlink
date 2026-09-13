@@ -7,6 +7,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import or_, select
 
 from app.access import get_owned_pet_or_404, get_updatable_pet, has_pet_permission
+from app.api.profiles import get_or_create_profile
 from app.core.config import get_settings
 from app.dependencies import CurrentUserDep, DbSession
 from app.models import Pet, PetCaregiver
@@ -61,6 +62,8 @@ def create_pet(
     notes: Annotated[str, Form()] = "",
     photo: Annotated[UploadFile | None, File()] = None,
 ) -> PetResponse:
+    get_or_create_profile(db, current_user)
+
     pet = Pet(
         owner_id=current_user.id,
         name=clean_required_text(name, "name"),
