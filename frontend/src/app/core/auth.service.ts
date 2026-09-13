@@ -3,6 +3,11 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 
 import { environment } from '../../environments/environment';
+import { CaregiversApiService } from './caregivers-api.service';
+import { MedicationsApiService } from './medications-api.service';
+import { PetsApiService } from './pets-api.service';
+import { PrescriptionsApiService } from './prescriptions-api.service';
+import { ProfileApiService } from './profile-api.service';
 
 interface AuthResponse {
   message: string;
@@ -19,6 +24,11 @@ interface AuthResponse {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
+  private readonly caregiversApiService = inject(CaregiversApiService);
+  private readonly medicationsApiService = inject(MedicationsApiService);
+  private readonly petsApiService = inject(PetsApiService);
+  private readonly prescriptionsApiService = inject(PrescriptionsApiService);
+  private readonly profileApiService = inject(ProfileApiService);
   private readonly tokenKey = 'petlink_access_token';
   private readonly refreshTokenKey = 'petlink_refresh_token';
 
@@ -47,10 +57,13 @@ export class AuthService {
   logout(): void {
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.refreshTokenKey);
+    this.clearApiCaches();
     this.isAuthenticated.set(false);
   }
 
   private storeSession(response: AuthResponse): void {
+    this.clearApiCaches();
+
     const accessToken = response.data.access_token ?? response.data.session?.access_token;
     const refreshToken = response.data.refresh_token ?? response.data.session?.refresh_token;
 
@@ -62,5 +75,13 @@ export class AuthService {
     if (refreshToken) {
       localStorage.setItem(this.refreshTokenKey, refreshToken);
     }
+  }
+
+  private clearApiCaches(): void {
+    this.caregiversApiService.clearCache();
+    this.medicationsApiService.clearCache();
+    this.petsApiService.clearCache();
+    this.prescriptionsApiService.clearCache();
+    this.profileApiService.clearCache();
   }
 }

@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, catchError, map, shareReplay, tap, throwError } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 
@@ -43,21 +43,35 @@ interface PetListResponse {
 export class PetsApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/pets`;
+  private petsRequest$?: Observable<Pet[]>;
 
   listPets(): Observable<Pet[]> {
-    return this.http.get<PetListResponse>(this.baseUrl).pipe(map((response) => response.pets));
+    this.petsRequest$ ??= this.http.get<PetListResponse>(this.baseUrl).pipe(
+      map((response) => response.pets),
+      shareReplay({ bufferSize: 1, refCount: false }),
+      catchError((error: unknown) => {
+        this.petsRequest$ = undefined;
+        return throwError(() => error);
+      }),
+    );
+
+    return this.petsRequest$;
   }
 
   createPet(payload: PetFormPayload): Observable<Pet> {
-    return this.http.post<Pet>(this.baseUrl, this.toFormData(payload));
+    return this.http.post<Pet>(this.baseUrl, this.toFormData(payload)).pipe(tap(() => this.clearCache()));
   }
 
   updatePet(petId: string, payload: PetFormPayload): Observable<Pet> {
-    return this.http.put<Pet>(`${this.baseUrl}/${petId}`, this.toFormData(payload));
+    return this.http.put<Pet>(`${this.baseUrl}/${petId}`, this.toFormData(payload)).pipe(tap(() => this.clearCache()));
   }
 
   deletePet(petId: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${petId}`);
+    return this.http.delete<void>(`${this.baseUrl}/${petId}`).pipe(tap(() => this.clearCache()));
+  }
+
+  clearCache(): void {
+    this.petsRequest$ = undefined;
   }
 
   private toFormData(payload: PetFormPayload): FormData {

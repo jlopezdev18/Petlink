@@ -1,5 +1,8 @@
+import time
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.requests import Request
 
 from app.api.auth import router as auth_router
 from app.api.caregivers import router as caregivers_router
@@ -21,6 +24,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Process-Time-Ms"],
 )
 
 app.include_router(auth_router)
@@ -29,6 +33,29 @@ app.include_router(pets_router)
 app.include_router(caregivers_router)
 app.include_router(medications_router)
 app.include_router(prescriptions_router)
+
+
+@app.middleware("http")
+async def log_request_timing(request: Request, call_next):
+    started_at = time.perf_counter()
+
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = (time.perf_counter() - started_at) * 1000
+        print(
+            f"[API timing] {request.method} {request.url.path} failed after {duration_ms:.2f} ms",
+            flush=True,
+        )
+        raise
+
+    duration_ms = (time.perf_counter() - started_at) * 1000
+    response.headers["X-Process-Time-Ms"] = f"{duration_ms:.2f}"
+    print(
+        f"[API timing] {request.method} {request.url.path} -> {response.status_code} in {duration_ms:.2f} ms",
+        flush=True,
+    )
+    return response
 
 
 @app.get("/")

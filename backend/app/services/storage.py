@@ -1,3 +1,4 @@
+import time
 from pathlib import PurePosixPath
 from typing import Any
 from urllib.parse import quote
@@ -6,6 +7,9 @@ import httpx
 from fastapi import HTTPException, UploadFile, status
 
 from app.core.config import Settings
+
+
+_signed_url_cache: dict[str, tuple[float, str]] = {}
 
 
 class PetFileStorage:
@@ -35,12 +39,22 @@ class PetFileStorage:
         if not path or not self.settings.supabase_secret_key:
             return None
 
+        cache_key = f"{self.settings.pet_files_bucket}:{path}"
+        cached_url = self._get_cached_signed_url(cache_key)
+        if cached_url is not None:
+            return cached_url
+
         response = httpx.post(
             self._sign_url(path),
             json={"expiresIn": self.settings.signed_url_expires_seconds},
             headers={**self._headers(), "Content-Type": "application/json"},
             timeout=15,
         )
+
+        if self._is_missing_object_response(response):
+            print(f"[Storage] missing object for signed URL: {path}", flush=True)
+            return None
+
         self._raise_for_storage_error(response)
         signed_url = response.json().get("signedURL")
 
@@ -48,9 +62,12 @@ class PetFileStorage:
             return None
 
         if signed_url.startswith("http"):
-            return signed_url
+            full_signed_url = signed_url
+        else:
+            full_signed_url = f"{self.settings.supabase_url}/storage/v1{signed_url}"
 
-        return f"{self.settings.supabase_url}/storage/v1{signed_url}"
+        self._cache_signed_url(cache_key, full_signed_url)
+        return full_signed_url
 
     def delete_file(self, path: str | None) -> None:
         if not path or not self.settings.supabase_secret_key:
@@ -98,6 +115,51 @@ class PetFileStorage:
             )
 
     @staticmethod
+    def _get_cached_signed_url(cache_key: str) -> str | None:
+        cached = _signed_url_cache.get(cache_key)
+
+        if cached is None:
+            return None
+
+        expires_at, signed_url = cached
+        if expires_at > time.monotonic():
+            return signed_url
+
+        _signed_url_cache.pop(cache_key, None)
+        return None
+
+    def _cache_signed_url(self, cache_key: str, signed_url: str) -> None:
+        now = time.monotonic()
+        ttl_seconds = max(0, min(self.settings.signed_url_expires_seconds - 60, 300))
+
+        if ttl_seconds <= 0:
+            return
+
+        _signed_url_cache[cache_key] = (now + ttl_seconds, signed_url)
+        expired_keys = [
+            cached_key for cached_key, (expires_at, _) in _signed_url_cache.items() if expires_at <= now
+        ]
+
+        for expired_key in expired_keys:
+            _signed_url_cache.pop(expired_key, None)
+
+    @staticmethod
+    def _is_missing_object_response(response: httpx.Response) -> bool:
+        if response.status_code < 400:
+            return False
+
+        try:
+            detail = response.json()
+        except ValueError:
+            return False
+
+        return (
+            detail.get("code") == "NoSuchKey"
+            or detail.get("error") == "not_found"
+            or detail.get("statusCode") == "404"
+        )
+
+    @staticmethod
     def _raise_for_storage_error(response: httpx.Response) -> None:
         if response.status_code < 400:
             return
@@ -108,6 +170,11 @@ class PetFileStorage:
         except ValueError:
             detail = response.text
 
+        print(
+            f"[Storage] {response.request.method} {response.request.url} -> "
+            f"{response.status_code}: {detail}",
+            flush=True,
+        )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail={"message": "Supabase Storage request failed.", "storage": detail},
