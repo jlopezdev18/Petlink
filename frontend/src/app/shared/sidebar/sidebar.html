@@ -95,6 +95,16 @@
   </nav>
 
   <div class="sidebar-actions">
+    <mat-slide-toggle
+      class="theme-toggle"
+      [checked]="isDarkMode()"
+      (change)="setDarkMode($event.checked)"
+      aria-label="Cambiar entre modo claro y oscuro"
+    >
+      <mat-icon aria-hidden="true">{{ isDarkMode() ? 'dark_mode' : 'light_mode' }}</mat-icon>
+      <span>{{ isDarkMode() ? 'Modo noche' : 'Modo dia' }}</span>
+    </mat-slide-toggle>
+
     <button class="nav-item logout-button" type="button" (click)="logout()">
       <mat-icon>logout</mat-icon>
       <span>Cerrar sesión</span>

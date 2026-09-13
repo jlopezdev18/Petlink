@@ -1,8 +1,4 @@
 :host {
-  --petlink-purple: #6324d6;
-  --petlink-purple-dark: #4b16b1;
-  --petlink-muted: #74758a;
-  --petlink-line: #d9d9e3;
   display: block;
   min-height: 100dvh;
 }
@@ -12,10 +8,10 @@
   min-width: 0;
   padding: 28px 42px 26px;
   display: block;
-  background: #ffffff;
-  border: 1px solid #e5e5ec;
+  background: var(--petlink-surface);
+  border: 1px solid var(--petlink-line);
   border-radius: 8px;
-  box-shadow: 0 14px 38px rgba(40, 31, 73, 0.12);
+  box-shadow: var(--petlink-shadow);
   box-sizing: border-box;
 }
 
@@ -89,7 +85,7 @@ form {
 .field-label {
   display: block;
   margin: 0 0 5px;
-  color: #26243a;
+  color: var(--petlink-ink);
   font-size: 12px;
   font-weight: 600;
 }
@@ -118,7 +114,7 @@ mat-form-field {
 }
 
 :host ::ng-deep .mat-mdc-form-field-icon-suffix {
-  color: #67687c;
+  color: var(--petlink-muted);
 }
 
 .password-grid {
@@ -183,7 +179,7 @@ mat-form-field {
 
 .field-error {
   margin: -2px 0 8px 16px;
-  color: #ba1a1a;
+  color: var(--petlink-danger);
   font-size: 12px;
 }
 
@@ -191,8 +187,8 @@ mat-form-field {
   margin: 14px 0 0;
   padding: 10px 12px;
   border-left: 3px solid var(--petlink-purple);
-  background: #f5f0ff;
-  color: #43335e;
+  background: var(--petlink-nav-hover-bg);
+  color: var(--petlink-ink);
   font-size: 12px;
   line-height: 1.4;
 }

@@ -1,9 +1,4 @@
 :host {
-  --petlink-purple: #6324d6;
-  --petlink-teal: #0f8f83;
-  --petlink-ink: #242238;
-  --petlink-muted: #696b80;
-  --petlink-line: #e4e3ec;
   display: block;
 }
 
@@ -14,7 +9,11 @@
 .dashboard-shell,
 .dashboard-content {
   min-height: 100dvh;
-  background-color: #f7f9fd;
+  background-color: var(--petlink-bg);
+  background-image:
+    var(--petlink-paw-pattern),
+    linear-gradient(135deg, var(--petlink-dashboard-teal-glow), transparent 32%),
+    linear-gradient(315deg, var(--petlink-dashboard-purple-glow), transparent 38%);
 }
 
 .dashboard-content {
@@ -82,8 +81,8 @@ h1 {
   margin-bottom: 18px;
   padding: 12px 14px;
   border-left: 4px solid var(--petlink-teal);
-  background: #effaf8;
-  color: #174d48;
+  background: var(--petlink-feedback-bg);
+  color: var(--petlink-feedback-text);
   font-size: 14px;
 }
 
@@ -99,8 +98,8 @@ h1 {
 .empty-state {
   border: 1px solid var(--petlink-line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 8px 22px rgba(38, 32, 70, 0.06);
+  background: var(--petlink-surface);
+  box-shadow: var(--petlink-shadow-soft);
 }
 
 .tool-panel {
@@ -197,7 +196,7 @@ mat-form-field,
 }
 
 .item-card dt {
-  color: #77788d;
+  color: var(--petlink-subtle);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -213,8 +212,8 @@ mat-form-field,
 .status-pill {
   padding: 5px 8px;
   border-radius: 999px;
-  background: #e7f7f4;
-  color: #10685f;
+  background: var(--petlink-feedback-bg);
+  color: var(--petlink-feedback-text);
   font-size: 12px;
   font-weight: 800;
 }
@@ -228,7 +227,7 @@ mat-form-field,
 }
 
 .danger-action {
-  color: #ba1a1a !important;
+  color: var(--petlink-danger) !important;
 }
 
 .empty-state {

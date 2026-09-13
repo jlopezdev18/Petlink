@@ -1,10 +1,4 @@
 :host {
-  --petlink-purple: #6324d6;
-  --petlink-purple-dark: #4b16b1;
-  --petlink-teal: #0f8f83;
-  --petlink-ink: #242238;
-  --petlink-muted: #696b80;
-  --petlink-line: #e4e3ec;
   display: block;
 }
 
@@ -15,13 +9,13 @@
 .dashboard-shell,
 .dashboard-content {
   min-height: 100dvh;
-  background-color: #f7f9fd;
+  background-color: var(--petlink-bg);
   background-image:
     var(--petlink-paw-pattern),
-    linear-gradient(135deg, rgba(15, 143, 131, 0.1), transparent 32%),
-    linear-gradient(315deg, rgba(99, 36, 214, 0.09), transparent 38%),
-    repeating-linear-gradient(90deg, rgba(36, 34, 56, 0.035) 0 1px, transparent 1px 78px),
-    repeating-linear-gradient(0deg, rgba(36, 34, 56, 0.025) 0 1px, transparent 1px 78px);
+    linear-gradient(135deg, var(--petlink-dashboard-teal-glow), transparent 32%),
+    linear-gradient(315deg, var(--petlink-dashboard-purple-glow), transparent 38%),
+    repeating-linear-gradient(90deg, var(--petlink-dashboard-grid-line-x) 0 1px, transparent 1px 78px),
+    repeating-linear-gradient(0deg, var(--petlink-dashboard-grid-line-y) 0 1px, transparent 1px 78px);
 }
 
 .dashboard-content {
@@ -86,8 +80,8 @@ h1 {
   margin: 0 auto 18px;
   padding: 12px 14px;
   border-left: 4px solid var(--petlink-teal);
-  background: #effaf8;
-  color: #174d48;
+  background: var(--petlink-feedback-bg);
+  color: var(--petlink-feedback-text);
   font-size: 14px;
 }
 
@@ -105,8 +99,8 @@ h1 {
   padding: 24px;
   border: 1px solid var(--petlink-line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 10px 28px rgba(38, 32, 70, 0.08);
+  background: var(--petlink-surface);
+  box-shadow: var(--petlink-shadow-soft);
 }
 
 .pet-form-panel h2 {
@@ -129,9 +123,9 @@ h1 {
   display: flex;
   align-items: center;
   gap: 16px;
-  border: 1px dashed #c9c7d6;
+  border: 1px dashed var(--petlink-line-strong);
   border-radius: 8px;
-  background: linear-gradient(135deg, #fbfcff, #f2fbf9);
+  background: var(--petlink-photo-gradient);
 }
 
 .photo-preview {
@@ -142,7 +136,7 @@ h1 {
   flex: 0 0 auto;
   overflow: hidden;
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--petlink-surface-raised);
   color: var(--petlink-teal);
 }
 
@@ -205,10 +199,10 @@ mat-form-field {
 }
 
 .pet-card {
-  --pet-card-accent: #0f8f83;
-  --pet-card-surface: rgba(255, 255, 255, 0.96);
-  --pet-card-photo: #eef8f6;
-  --pet-card-detail: #f6f6fb;
+  --pet-card-accent: var(--petlink-teal);
+  --pet-card-surface: var(--petlink-surface);
+  --pet-card-photo: var(--petlink-feedback-bg);
+  --pet-card-detail: var(--petlink-surface-muted);
   min-width: 0;
   position: relative;
   padding: 0;
@@ -216,7 +210,7 @@ mat-form-field {
   border: 1px solid var(--petlink-line);
   border-radius: 8px;
   background: var(--pet-card-surface);
-  box-shadow: 0 8px 22px rgba(38, 32, 70, 0.06);
+  box-shadow: var(--petlink-shadow-soft);
 }
 
 .card-actions {
@@ -235,10 +229,10 @@ mat-form-field {
   padding: 0;
   display: inline-grid;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.88);
-  color: #3c3a4d;
-  box-shadow: 0 8px 18px rgba(30, 24, 56, 0.14);
+  border: 1px solid var(--petlink-line);
+  background: var(--petlink-pet-action-bg);
+  color: var(--petlink-ink);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.26);
 }
 
 .edit-card-button mat-icon,
@@ -255,23 +249,23 @@ mat-form-field {
 }
 
 .delete-card-button:hover {
-  color: #ba1a1a;
+  color: var(--petlink-danger);
 }
 
 .pet-card.female-card {
-  --pet-card-accent: #d84f7c;
-  --pet-card-surface: rgba(255, 247, 250, 0.98);
-  --pet-card-photo: #ffe6ef;
-  --pet-card-detail: #fff0f5;
-  border-color: #f2bdd0;
+  --pet-card-accent: var(--petlink-pet-female-accent);
+  --pet-card-surface: var(--petlink-pet-female-surface);
+  --pet-card-photo: var(--petlink-pet-female-photo);
+  --pet-card-detail: var(--petlink-pet-female-detail);
+  border-color: var(--petlink-pet-female-border);
 }
 
 .pet-card.male-card {
-  --pet-card-accent: #3287c7;
-  --pet-card-surface: rgba(246, 251, 255, 0.98);
-  --pet-card-photo: #dcefff;
-  --pet-card-detail: #edf7ff;
-  border-color: #b9dcf6;
+  --pet-card-accent: var(--petlink-pet-male-accent);
+  --pet-card-surface: var(--petlink-pet-male-surface);
+  --pet-card-photo: var(--petlink-pet-male-photo);
+  --pet-card-detail: var(--petlink-pet-male-detail);
+  border-color: var(--petlink-pet-male-border);
 }
 
 .pet-photo {
@@ -283,7 +277,7 @@ mat-form-field {
   place-items: center;
   overflow: hidden;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--pet-card-accent) 16%, transparent), rgba(255, 255, 255, 0.7)),
+    linear-gradient(135deg, color-mix(in srgb, var(--pet-card-accent) 18%, transparent), var(--petlink-pet-photo-overlay)),
     var(--pet-card-photo);
   color: var(--pet-card-accent);
 }
@@ -358,7 +352,7 @@ mat-form-field {
 }
 
 .pet-details dt {
-  color: #77788d;
+  color: var(--petlink-subtle);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -386,9 +380,9 @@ mat-form-field {
   display: grid;
   place-items: center;
   text-align: center;
-  border: 1px dashed #cfcdda;
+  border: 1px dashed var(--petlink-line-strong);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--petlink-surface);
 }
 
 .empty-state mat-icon {
@@ -414,7 +408,7 @@ mat-form-field {
   inset: 0;
   z-index: 60;
   border: 0;
-  background: rgba(20, 18, 36, 0.38);
+  background: var(--petlink-backdrop);
 }
 
 .confirm-dialog {
@@ -425,10 +419,10 @@ mat-form-field {
   width: min(420px, calc(100vw - 32px));
   padding: 26px;
   transform: translate(-50%, -50%);
-  border: 1px solid #efe1e6;
+  border: 1px solid var(--petlink-line-strong);
   border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 24px 70px rgba(28, 22, 49, 0.25);
+  background: var(--petlink-surface-solid);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
 }
 
 .confirm-dialog h2 {

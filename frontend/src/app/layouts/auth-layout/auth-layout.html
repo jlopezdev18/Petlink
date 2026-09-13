@@ -7,12 +7,22 @@
       </span>
       <span>PetLink</span>
     </a>
+
+    <mat-slide-toggle
+      class="theme-toggle"
+      [checked]="isDarkMode()"
+      (change)="setDarkMode($event.checked)"
+      aria-label="Cambiar entre modo claro y oscuro"
+    >
+      <mat-icon aria-hidden="true">{{ isDarkMode() ? 'dark_mode' : 'light_mode' }}</mat-icon>
+      <span>{{ isDarkMode() ? 'Noche' : 'Dia' }}</span>
+    </mat-slide-toggle>
   </header>
 
   <main class="auth-layout">
     <section class="pet-visual" aria-label="Un perro y un gato, compañeros de PetLink">
       <img
-        src="petlink-auth-pets.png"
+        src="petlink-auth-pets-cutout.png"
         alt="Un golden retriever y un gato atigrado sentados juntos"
       />
       <span class="paw-decoration paw-one" aria-hidden="true">
