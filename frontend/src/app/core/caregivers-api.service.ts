@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, catchError, shareReplay, tap, throwError } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 
@@ -34,20 +34,33 @@ export interface CaregiverPayload {
 export class CaregiversApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/caregivers`;
+  private caregiversRequest$?: Observable<CaregiverAccess[]>;
 
   listCaregivers(): Observable<CaregiverAccess[]> {
-    return this.http.get<CaregiverAccess[]>(this.baseUrl);
+    this.caregiversRequest$ ??= this.http.get<CaregiverAccess[]>(this.baseUrl).pipe(
+      shareReplay({ bufferSize: 1, refCount: false }),
+      catchError((error: unknown) => {
+        this.caregiversRequest$ = undefined;
+        return throwError(() => error);
+      }),
+    );
+
+    return this.caregiversRequest$;
   }
 
   createCaregiver(payload: CaregiverPayload): Observable<CaregiverAccess> {
-    return this.http.post<CaregiverAccess>(this.baseUrl, payload);
+    return this.http.post<CaregiverAccess>(this.baseUrl, payload).pipe(tap(() => this.clearCache()));
   }
 
   updateCaregiver(caregiverId: string, payload: Pick<CaregiverPayload, 'preset' | 'notes'>): Observable<CaregiverAccess> {
-    return this.http.put<CaregiverAccess>(`${this.baseUrl}/${caregiverId}`, payload);
+    return this.http.put<CaregiverAccess>(`${this.baseUrl}/${caregiverId}`, payload).pipe(tap(() => this.clearCache()));
   }
 
   deleteCaregiver(caregiverId: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${caregiverId}`);
+    return this.http.delete<void>(`${this.baseUrl}/${caregiverId}`).pipe(tap(() => this.clearCache()));
+  }
+
+  clearCache(): void {
+    this.caregiversRequest$ = undefined;
   }
 }

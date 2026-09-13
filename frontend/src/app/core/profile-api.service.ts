@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, catchError, shareReplay, tap, throwError } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 
@@ -22,12 +22,25 @@ export interface ProfileUpdatePayload {
 export class ProfileApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/profile`;
+  private profileRequest$?: Observable<Profile>;
 
   getProfile(): Observable<Profile> {
-    return this.http.get<Profile>(this.baseUrl);
+    this.profileRequest$ ??= this.http.get<Profile>(this.baseUrl).pipe(
+      shareReplay({ bufferSize: 1, refCount: false }),
+      catchError((error: unknown) => {
+        this.profileRequest$ = undefined;
+        return throwError(() => error);
+      }),
+    );
+
+    return this.profileRequest$;
   }
 
   updateProfile(payload: ProfileUpdatePayload): Observable<Profile> {
-    return this.http.put<Profile>(this.baseUrl, payload);
+    return this.http.put<Profile>(this.baseUrl, payload).pipe(tap(() => this.clearCache()));
+  }
+
+  clearCache(): void {
+    this.profileRequest$ = undefined;
   }
 }

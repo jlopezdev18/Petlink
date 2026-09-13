@@ -1,6 +1,7 @@
 from collections.abc import Generator
 
 from fastapi import HTTPException, status
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
@@ -31,5 +32,11 @@ def get_db() -> Generator[Session]:
     db = SessionLocal()
     try:
         yield db
+    except SQLAlchemyError as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database request failed. Check DATABASE_URL and database connectivity.",
+        ) from error
     finally:
         db.close()

@@ -1,3 +1,4 @@
+import time
 from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
@@ -20,6 +21,11 @@ class CurrentUser:
     email: str | None = None
 
 
+AUTH_USER_CACHE_TTL_SECONDS = 60
+_auth_user_cache: dict[str, tuple[float, CurrentUser]] = {}
+_auth_http_client = httpx.Client(timeout=10)
+
+
 def get_current_user(
     settings: SettingsDep,
     authorization: Annotated[str | None, Header()] = None,
@@ -37,6 +43,10 @@ def get_current_user(
             detail="Missing bearer token.",
         )
 
+    cached_user = get_cached_user(token)
+    if cached_user is not None:
+        return cached_user
+
     if not settings.supabase_url or not settings.supabase_publishable_key:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -44,13 +54,12 @@ def get_current_user(
         )
 
     try:
-        response = httpx.get(
+        response = _auth_http_client.get(
             f"{settings.supabase_url}/auth/v1/user",
             headers={
                 "apikey": settings.supabase_publishable_key,
                 "Authorization": f"Bearer {token}",
             },
-            timeout=10,
         )
     except httpx.HTTPError as error:
         raise HTTPException(
@@ -73,7 +82,35 @@ def get_current_user(
             detail="Invalid token payload.",
         )
 
-    return CurrentUser(id=UUID(user_id), email=payload.get("email"))
+    current_user = CurrentUser(id=UUID(user_id), email=payload.get("email"))
+    cache_user(token, current_user)
+    return current_user
+
+
+def get_cached_user(token: str) -> CurrentUser | None:
+    cached = _auth_user_cache.get(token)
+
+    if cached is None:
+        return None
+
+    expires_at, current_user = cached
+    if expires_at > time.monotonic():
+        return current_user
+
+    _auth_user_cache.pop(token, None)
+    return None
+
+
+def cache_user(token: str, current_user: CurrentUser) -> None:
+    now = time.monotonic()
+    _auth_user_cache[token] = (now + AUTH_USER_CACHE_TTL_SECONDS, current_user)
+
+    expired_tokens = [
+        cached_token for cached_token, (expires_at, _) in _auth_user_cache.items() if expires_at <= now
+    ]
+
+    for expired_token in expired_tokens:
+        _auth_user_cache.pop(expired_token, None)
 
 
 CurrentUserDep = Annotated[CurrentUser, Depends(get_current_user)]
