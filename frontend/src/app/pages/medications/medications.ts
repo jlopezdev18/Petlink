@@ -46,7 +46,7 @@ export class MedicationsPage implements OnInit {
     this.pets().find((pet) => pet.id === this.selectedPetId()) ?? null,
   );
   protected readonly canManageSelectedPet = computed(() => this.selectedPet()?.canManageMedications ?? false);
-  protected readonly canAdministerSelectedPet = computed(() => Boolean(this.selectedPet()) && !this.canManageSelectedPet());
+  protected readonly canAdministerSelectedPet = computed(() => Boolean(this.selectedPet()));
 
   protected readonly form = this.formBuilder.nonNullable.group({
     name: ['', Validators.required],

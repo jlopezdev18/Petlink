@@ -130,29 +130,30 @@
                   <p class="notes">{{ medication.instructions }}</p>
                 }
 
-                @if (canManageSelectedPet()) {
+                @if (canManageSelectedPet() || (canAdministerSelectedPet() && medication.isActive)) {
                   <div class="card-actions">
-                    <button mat-stroked-button type="button" [disabled]="submitting()" (click)="editMedication(medication)">
-                      <mat-icon>edit</mat-icon>
-                      <span>Editar</span>
-                    </button>
-                    <button mat-button type="button" [disabled]="submitting()" (click)="toggleMedication(medication)">
-                      <mat-icon>{{ medication.isActive ? 'toggle_off' : 'toggle_on' }}</mat-icon>
-                      <span>{{ medication.isActive ? 'Desactivar' : 'Activar' }}</span>
-                    </button>
-                  </div>
-                } @else if (canAdministerSelectedPet() && medication.isActive) {
-                  <div class="card-actions">
-                    <button
-                      mat-flat-button
-                      class="primary-action"
-                      type="button"
-                      [disabled]="submitting() || isAdministered(medication)"
-                      (click)="administerMedication(medication)"
-                    >
-                      <mat-icon>{{ isAdministered(medication) ? 'check_circle' : 'done' }}</mat-icon>
-                      <span>{{ isAdministered(medication) ? 'Administrado' : 'Ya administrado' }}</span>
-                    </button>
+                    @if (canManageSelectedPet()) {
+                      <button mat-stroked-button type="button" [disabled]="submitting()" (click)="editMedication(medication)">
+                        <mat-icon>edit</mat-icon>
+                        <span>Editar</span>
+                      </button>
+                      <button mat-button type="button" [disabled]="submitting()" (click)="toggleMedication(medication)">
+                        <mat-icon>{{ medication.isActive ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+                        <span>{{ medication.isActive ? 'Desactivar' : 'Activar' }}</span>
+                      </button>
+                    }
+                    @if (canAdministerSelectedPet() && medication.isActive) {
+                      <button
+                        mat-flat-button
+                        class="primary-action"
+                        type="button"
+                        [disabled]="submitting() || isAdministered(medication)"
+                        (click)="administerMedication(medication)"
+                      >
+                        <mat-icon>{{ isAdministered(medication) ? 'check_circle' : 'done' }}</mat-icon>
+                        <span>{{ isAdministered(medication) ? 'Administrado' : 'Administrar' }}</span>
+                      </button>
+                    }
                   </div>
                 }
               </article>
