@@ -19,6 +19,7 @@ SettingsDep = Annotated[Settings, Depends(get_settings)]
 class CurrentUser:
     id: UUID
     email: str | None = None
+    account_type: str = "owner"
 
 
 AUTH_USER_CACHE_TTL_SECONDS = 60
@@ -29,6 +30,7 @@ _auth_http_client = httpx.Client(timeout=10)
 def get_current_user(
     settings: SettingsDep,
     authorization: Annotated[str | None, Header()] = None,
+    x_petlink_account_type: Annotated[str | None, Header()] = None,
 ) -> CurrentUser:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(
@@ -43,9 +45,10 @@ def get_current_user(
             detail="Missing bearer token.",
         )
 
+    requested_account_type = clean_account_type(x_petlink_account_type)
     cached_user = get_cached_user(token)
     if cached_user is not None:
-        return cached_user
+        return CurrentUser(id=cached_user.id, email=cached_user.email, account_type=requested_account_type)
 
     if not settings.supabase_url or not settings.supabase_publishable_key:
         raise HTTPException(
@@ -82,9 +85,14 @@ def get_current_user(
             detail="Invalid token payload.",
         )
 
-    current_user = CurrentUser(id=UUID(user_id), email=payload.get("email"))
+    current_user = CurrentUser(id=UUID(user_id), email=payload.get("email"), account_type=requested_account_type)
     cache_user(token, current_user)
     return current_user
+
+
+def clean_account_type(value: str | None) -> str:
+    cleaned = (value or "owner").strip().lower()
+    return cleaned if cleaned in {"owner", "caregiver"} else "owner"
 
 
 def get_cached_user(token: str) -> CurrentUser | None:

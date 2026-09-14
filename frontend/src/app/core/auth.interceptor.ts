@@ -17,6 +17,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
     request.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`,
+        'X-PetLink-Account-Type': authService.accountType,
       },
     }),
   );

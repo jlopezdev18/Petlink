@@ -20,6 +20,7 @@ export class Sidebar {
 
   protected readonly mobileMenuOpen = signal(false);
   protected readonly isDarkMode = this.themeService.isDarkMode;
+  protected readonly isCaregiverMode = () => this.authService.accountType === 'caregiver';
 
   protected toggleMobileMenu(): void {
     this.mobileMenuOpen.update((isOpen) => !isOpen);

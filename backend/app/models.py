@@ -14,6 +14,7 @@ class Profile(Base):
     id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True)
     email: Mapped[str | None] = mapped_column(Text)
     full_name: Mapped[str] = mapped_column(Text)
+    account_type: Mapped[str] = mapped_column(Text, default="owner")
     phone: Mapped[str | None] = mapped_column(Text)
     avatar_url: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -24,6 +25,11 @@ class Profile(Base):
         back_populates="owner",
         cascade="all, delete-orphan",
         foreign_keys="PetCaregiver.owner_id",
+    )
+    access_codes_given: Mapped[list["PetAccessCode"]] = relationship(
+        back_populates="owner",
+        cascade="all, delete-orphan",
+        foreign_keys="PetAccessCode.owner_id",
     )
     caregiver_access_received: Mapped[list["PetCaregiver"]] = relationship(
         back_populates="caregiver",
@@ -54,6 +60,7 @@ class Pet(Base):
     medical_records: Mapped[list["MedicalRecord"]] = relationship(back_populates="pet", cascade="all, delete-orphan")
     reminders: Mapped[list["Reminder"]] = relationship(back_populates="pet", cascade="all, delete-orphan")
     caregivers: Mapped[list["PetCaregiver"]] = relationship(back_populates="pet", cascade="all, delete-orphan")
+    access_codes: Mapped[list["PetAccessCode"]] = relationship(back_populates="pet", cascade="all, delete-orphan")
     prescriptions: Mapped[list["Prescription"]] = relationship(back_populates="pet", cascade="all, delete-orphan")
 
 
@@ -81,6 +88,25 @@ class PetCaregiver(Base):
     pet: Mapped[Pet] = relationship(back_populates="caregivers")
     owner: Mapped[Profile] = relationship(back_populates="caregiver_access_given", foreign_keys=[owner_id])
     caregiver: Mapped[Profile] = relationship(back_populates="caregiver_access_received", foreign_keys=[caregiver_id])
+
+
+class PetAccessCode(Base):
+    __tablename__ = "pet_access_codes"
+    __table_args__ = (UniqueConstraint("code_hash"),)
+
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
+    pet_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), ForeignKey("pets.id"))
+    owner_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), ForeignKey("profiles.id"))
+    code_hash: Mapped[str] = mapped_column(Text)
+    purpose: Mapped[str] = mapped_column(Text, default="caregiver")
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    pet: Mapped[Pet] = relationship(back_populates="access_codes")
+    owner: Mapped[Profile] = relationship(back_populates="access_codes_given", foreign_keys=[owner_id])
 
 
 class Medication(Base):

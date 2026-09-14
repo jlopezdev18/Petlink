@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
@@ -5,8 +6,14 @@ from sqlalchemy import select
 
 from app.access import get_medication_manageable_pet, get_medication_viewable_pet
 from app.dependencies import CurrentUserDep, DbSession
-from app.models import Medication
-from app.schemas.medications import MedicationListResponse, MedicationRequest, MedicationResponse
+from app.models import Medication, MedicationLog
+from app.schemas.medications import (
+    MedicationAdministrationRequest,
+    MedicationAdministrationResponse,
+    MedicationListResponse,
+    MedicationRequest,
+    MedicationResponse,
+)
 
 router = APIRouter(prefix="/medications", tags=["medications"])
 
@@ -33,6 +40,7 @@ def create_medication(
     current_user: CurrentUserDep,
     db: DbSession,
 ) -> MedicationResponse:
+    require_owner_mode(current_user)
     pet = get_medication_manageable_pet(db, current_user.id, request.pet_id)
     medication = Medication(
         pet_id=pet.id,
@@ -59,6 +67,7 @@ def update_medication(
     current_user: CurrentUserDep,
     db: DbSession,
 ) -> MedicationResponse:
+    require_owner_mode(current_user)
     medication = get_medication_or_404(db, medication_id)
     get_medication_manageable_pet(db, current_user.id, medication.pet_id)
 
@@ -78,6 +87,39 @@ def update_medication(
     db.commit()
     db.refresh(medication)
     return serialize_medication(medication)
+
+
+@router.post("/{medication_id}/administer", response_model=MedicationAdministrationResponse)
+def administer_medication(
+    medication_id: UUID,
+    request: MedicationAdministrationRequest,
+    current_user: CurrentUserDep,
+    db: DbSession,
+) -> MedicationAdministrationResponse:
+    medication = get_medication_or_404(db, medication_id)
+    get_medication_viewable_pet(db, current_user.id, medication.pet_id)
+
+    if not medication.is_active:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Medication is inactive.")
+
+    now = datetime.now(timezone.utc)
+    medication_log = MedicationLog(
+        medication_id=medication.id,
+        scheduled_for=now,
+        administered_at=now,
+        status="given",
+        notes=clean_optional_text(request.notes),
+    )
+    db.add(medication_log)
+    db.commit()
+    db.refresh(medication_log)
+    return MedicationAdministrationResponse(
+        id=medication_log.id,
+        medicationId=medication_log.medication_id,
+        administeredAt=medication_log.administered_at or now,
+        status=medication_log.status,
+        notes=medication_log.notes or "",
+    )
 
 
 def get_medication_or_404(db: DbSession, medication_id: UUID) -> Medication:
@@ -125,3 +167,8 @@ def clean_required_text(value: str, field_name: str) -> str:
 def clean_optional_text(value: str | None) -> str | None:
     cleaned = (value or "").strip()
     return cleaned or None
+
+
+def require_owner_mode(current_user: CurrentUserDep) -> None:
+    if current_user.account_type != "owner":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Owner mode required.")

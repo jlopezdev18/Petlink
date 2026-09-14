@@ -1,0 +1,260 @@
+<main class="guest-shell" aria-label="Acceso temporal para cuidadores">
+  <section class="access-panel">
+    <div class="brand-line">
+      <mat-icon>pets</mat-icon>
+      <span>PetLink</span>
+    </div>
+
+    <div class="panel-heading">
+      <h1>Acceso temporal</h1>
+      <p>Ingresa el codigo o escanea el QR para abrir la informacion autorizada.</p>
+    </div>
+
+    <form [formGroup]="accessForm" (ngSubmit)="validateAccess()" novalidate>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Codigo</mat-label>
+        <mat-icon matPrefix>vpn_key</mat-icon>
+        <input matInput type="text" formControlName="code" autocomplete="one-time-code" />
+        @if (accessForm.controls.code.hasError('required')) {
+          <mat-error>Ingresa el codigo.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Tu nombre</mat-label>
+        <mat-icon matPrefix>person</mat-icon>
+        <input matInput type="text" formControlName="guestName" placeholder="Opcional" />
+      </mat-form-field>
+
+      <button mat-flat-button class="primary-action" type="submit" [disabled]="loading()">
+        @if (loading()) {
+          <mat-progress-spinner diameter="20" mode="indeterminate" />
+        } @else {
+          <mat-icon>login</mat-icon>
+        }
+        <span>Entrar</span>
+      </button>
+    </form>
+
+    @if (feedback()) {
+      <p class="feedback" role="status">{{ feedback() }}</p>
+    }
+  </section>
+
+  @if (pet()) {
+    <section class="pet-panel" aria-label="Informacion autorizada">
+      <article class="pet-card">
+        @if (pet()?.photoUrl) {
+          <img [src]="pet()?.photoUrl" [alt]="pet()?.name" />
+        }
+        <div>
+          <p class="eyebrow">Mascota autorizada</p>
+          <h2>{{ pet()?.name }}</h2>
+          <dl>
+            <div>
+              <dt>Especie</dt>
+              <dd>{{ pet()?.species }}</dd>
+            </div>
+            <div>
+              <dt>Color</dt>
+              <dd>{{ pet()?.color || 'Sin registrar' }}</dd>
+            </div>
+            <div>
+              <dt>Peso</dt>
+              <dd>{{ pet()?.weightKg ? pet()?.weightKg + ' kg' : 'Sin registrar' }}</dd>
+            </div>
+          </dl>
+          @if (pet()?.notes) {
+            <p class="notes">{{ pet()?.notes }}</p>
+          }
+        </div>
+      </article>
+
+      <form class="notes-form" [formGroup]="notesForm">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Nota para la administracion</mat-label>
+          <mat-icon matPrefix>edit_note</mat-icon>
+          <input matInput type="text" formControlName="notes" placeholder="Opcional" />
+        </mat-form-field>
+      </form>
+
+      @if (isVeterinarianAccess()) {
+        <section class="vet-panel" aria-label="Formulario veterinario">
+          <article class="vet-form-card">
+            <h2>Nuevo medicamento</h2>
+            <form [formGroup]="medicationForm" (ngSubmit)="createMedication()" novalidate>
+              <div class="vet-grid">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Nombre</mat-label>
+                  <mat-icon matPrefix>medication</mat-icon>
+                  <input matInput type="text" formControlName="name" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Dosis</mat-label>
+                  <mat-icon matPrefix>vaccines</mat-icon>
+                  <input matInput type="text" formControlName="dosage" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Frecuencia</mat-label>
+                  <mat-icon matPrefix>schedule</mat-icon>
+                  <input matInput type="text" formControlName="frequency" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Inicio</mat-label>
+                  <mat-icon matPrefix>event</mat-icon>
+                  <input matInput type="date" formControlName="startDate" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Fin</mat-label>
+                  <mat-icon matPrefix>event_available</mat-icon>
+                  <input matInput type="date" formControlName="endDate" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Veterinario</mat-label>
+                  <mat-icon matPrefix>badge</mat-icon>
+                  <input matInput type="text" formControlName="prescribingVet" />
+                </mat-form-field>
+
+                <mat-form-field class="wide-field" appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Instrucciones</mat-label>
+                  <mat-icon matPrefix>edit_note</mat-icon>
+                  <textarea matInput rows="3" formControlName="instructions"></textarea>
+                </mat-form-field>
+              </div>
+
+              <button mat-flat-button class="primary-action" type="submit" [disabled]="submittingVetForm()">
+                <mat-icon>add</mat-icon>
+                <span>Guardar medicamento</span>
+              </button>
+            </form>
+          </article>
+
+          <article class="vet-form-card">
+            <h2>Nueva receta</h2>
+            <form [formGroup]="prescriptionForm" (ngSubmit)="createPrescription(prescriptionFileInput)" novalidate>
+              <div class="vet-grid">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Titulo</mat-label>
+                  <mat-icon matPrefix>description</mat-icon>
+                  <input matInput type="text" formControlName="title" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Medicamento</mat-label>
+                  <mat-icon matPrefix>medication</mat-icon>
+                  <mat-select formControlName="medicationId">
+                    <mat-option value="">Sin medicamento</mat-option>
+                    @for (medication of medications(); track medication.id) {
+                      <mat-option [value]="medication.id">{{ medication.name }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Veterinario</mat-label>
+                  <mat-icon matPrefix>badge</mat-icon>
+                  <input matInput type="text" formControlName="prescribedBy" />
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Fecha</mat-label>
+                  <mat-icon matPrefix>event</mat-icon>
+                  <input matInput type="date" formControlName="issuedOn" />
+                </mat-form-field>
+
+                <mat-form-field class="wide-field" appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Notas</mat-label>
+                  <mat-icon matPrefix>edit_note</mat-icon>
+                  <textarea matInput rows="3" formControlName="notes"></textarea>
+                </mat-form-field>
+              </div>
+
+              <input
+                #prescriptionFileInput
+                class="file-input"
+                type="file"
+                accept="application/pdf,image/jpeg,image/png,image/webp"
+                (change)="selectPrescriptionFile($event)"
+              />
+
+              <button mat-flat-button class="primary-action" type="submit" [disabled]="submittingVetForm()">
+                <mat-icon>upload_file</mat-icon>
+                <span>Subir receta</span>
+              </button>
+            </form>
+          </article>
+        </section>
+      }
+
+      <section class="medication-grid" aria-label="Medicamentos autorizados">
+        @for (medication of medications(); track medication.id) {
+          <article class="medication-card">
+            <div>
+              <h3>{{ medication.name }}</h3>
+              <p>{{ medication.dosage }} - {{ medication.frequency }}</p>
+            </div>
+            <dl>
+              <div>
+                <dt>Inicio</dt>
+                <dd>{{ medication.startDate }}</dd>
+              </div>
+              <div>
+                <dt>Fin</dt>
+                <dd>{{ medication.endDate || 'Sin definir' }}</dd>
+              </div>
+            </dl>
+            @if (medication.instructions) {
+              <p class="notes">{{ medication.instructions }}</p>
+            }
+            <button
+              mat-flat-button
+              class="primary-action"
+              type="button"
+              [disabled]="submittingMedicationId() === medication.id || isAdministered(medication)"
+              (click)="administerMedication(medication)"
+            >
+              <mat-icon>{{ isAdministered(medication) ? 'check_circle' : 'done' }}</mat-icon>
+              <span>{{ isAdministered(medication) ? 'Administrado' : 'Ya administrado' }}</span>
+            </button>
+          </article>
+        } @empty {
+          <div class="empty-state">
+            <mat-icon>medication</mat-icon>
+            <h2>No hay medicamentos activos</h2>
+          </div>
+        }
+      </section>
+
+      @if (isVeterinarianAccess()) {
+        <section class="medication-grid" aria-label="Recetas registradas">
+          @for (prescription of prescriptions(); track prescription.id) {
+            <article class="medication-card">
+              <div>
+                <h3>{{ prescription.title }}</h3>
+                <p>{{ prescription.prescribedBy || 'Veterinario sin nombre' }} - {{ prescription.issuedOn }}</p>
+              </div>
+              @if (prescription.medicationName) {
+                <p class="notes">Medicamento: {{ prescription.medicationName }}</p>
+              }
+              @if (prescription.fileUrl) {
+                <a class="file-link" [href]="prescription.fileUrl" target="_blank" rel="noreferrer">
+                  Abrir archivo
+                </a>
+              }
+            </article>
+          } @empty {
+            <div class="empty-state">
+              <mat-icon>description</mat-icon>
+              <h2>No hay recetas registradas</h2>
+            </div>
+          }
+        </section>
+      }
+    </section>
+  }
+</main>

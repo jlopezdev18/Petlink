@@ -114,6 +114,14 @@
       <p class="field-error">Debes aceptar los términos para continuar.</p>
     }
 
+    <div class="account-type" role="group" aria-label="Tipo de cuenta">
+      <span>Crear cuenta como</span>
+      <mat-radio-group formControlName="accountType">
+        <mat-radio-button value="owner">Propietario</mat-radio-button>
+        <mat-radio-button value="caregiver">Cuidador</mat-radio-button>
+      </mat-radio-group>
+    </div>
+
     <button mat-flat-button class="primary-action" type="submit">Crear cuenta</button>
   </form>
 

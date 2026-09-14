@@ -5,6 +5,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatRadioModule } from '@angular/material/radio';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
@@ -27,6 +28,7 @@ const passwordsMatch: ValidatorFn = (control: AbstractControl): ValidationErrors
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatRadioModule,
     RouterLink,
   ],
   templateUrl: './register.html',
@@ -47,6 +49,7 @@ export class RegisterPage {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmation: ['', Validators.required],
+      accountType: ['owner'],
       acceptTerms: [false, Validators.requiredTrue],
     },
     { validators: passwordsMatch },
@@ -64,10 +67,10 @@ export class RegisterPage {
 
     try {
       const account = this.form.getRawValue();
-      await firstValueFrom(this.authService.register(account.name, account.email, account.password));
+      await firstValueFrom(this.authService.register(account.name, account.email, account.password, account.accountType));
 
       if (this.authService.accessToken) {
-        await this.router.navigate(['/inicio']);
+        await this.router.navigate([account.accountType === 'caregiver' ? '/medicamentos' : '/inicio']);
       } else {
         this.feedback.set('Cuenta creada. Revisa tu correo para confirmar el registro antes de iniciar sesion.');
       }

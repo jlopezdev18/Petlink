@@ -137,6 +137,28 @@ mat-form-field {
   gap: 16px;
 }
 
+.account-type {
+  margin: 0 0 14px;
+  padding: 12px;
+  border: 1px solid var(--petlink-line);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  background: var(--petlink-nav-hover-bg);
+}
+
+.account-type > span {
+  color: var(--petlink-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.account-type mat-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
 .text-action {
   padding: 2px 0;
   border: 0;

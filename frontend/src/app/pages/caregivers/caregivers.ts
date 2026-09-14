@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -8,7 +9,14 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { firstValueFrom } from 'rxjs';
 
-import { CaregiverAccess, CaregiverPreset, CaregiversApiService } from '../../core/caregivers-api.service';
+import {
+  AccessCode,
+  CaregiverAccess,
+  CaregiverPreset,
+  CaregiversApiService,
+  CreatedAccessCode,
+} from '../../core/caregivers-api.service';
+import { AuthService } from '../../core/auth.service';
 import { Pet, PetsApiService } from '../../core/pets-api.service';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 
@@ -16,6 +24,7 @@ import { Sidebar } from '../../shared/sidebar/sidebar';
   selector: 'app-caregivers-page',
   imports: [
     Sidebar,
+    DatePipe,
     ReactiveFormsModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -29,6 +38,7 @@ import { Sidebar } from '../../shared/sidebar/sidebar';
 })
 export class CaregiversPage implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
   private readonly petsApiService = inject(PetsApiService);
   private readonly caregiversApiService = inject(CaregiversApiService);
 
@@ -37,17 +47,25 @@ export class CaregiversPage implements OnInit {
   protected readonly feedback = signal('');
   protected readonly pets = signal<Pet[]>([]);
   protected readonly caregivers = signal<CaregiverAccess[]>([]);
+  protected readonly accessCodes = signal<AccessCode[]>([]);
+  protected readonly createdAccessCode = signal<CreatedAccessCode | null>(null);
   protected readonly editingCaregiver = signal<CaregiverAccess | null>(null);
 
   protected readonly ownerPets = computed(() => this.pets().filter((pet) => pet.isOwner));
   protected readonly receivedAccess = computed(() => this.caregivers().filter((caregiver) => !caregiver.isOwner));
   protected readonly ownedAccess = computed(() => this.caregivers().filter((caregiver) => caregiver.isOwner));
+  protected readonly isOwnerMode = computed(() => this.authService.accountType === 'owner');
 
   protected readonly form = this.formBuilder.nonNullable.group({
     petId: ['', Validators.required],
     caregiverEmail: ['', [Validators.required, Validators.email]],
     preset: ['caregiver' as CaregiverPreset, Validators.required],
     notes: [''],
+  });
+  protected readonly accessCodeForm = this.formBuilder.nonNullable.group({
+    petId: ['', Validators.required],
+    duration: ['24h', Validators.required],
+    purpose: ['caregiver' as AccessCode['purpose'], Validators.required],
   });
 
   ngOnInit(): void {
@@ -138,6 +156,90 @@ export class CaregiversPage implements OnInit {
     }
   }
 
+  protected async createAccessCode(): Promise<void> {
+    this.feedback.set('');
+    this.accessCodeForm.markAllAsTouched();
+
+    if (this.accessCodeForm.invalid || this.submitting()) {
+      return;
+    }
+
+    const rawAccessCode = this.accessCodeForm.getRawValue();
+    this.submitting.set(true);
+
+    try {
+      const createdAccessCode = await firstValueFrom(
+        this.caregiversApiService.createAccessCode(
+          rawAccessCode.petId,
+          this.expiresAtFor(rawAccessCode.duration),
+          rawAccessCode.purpose,
+        ),
+      );
+      this.createdAccessCode.set(createdAccessCode);
+      this.accessCodes.update((accessCodes) => [createdAccessCode, ...accessCodes]);
+      this.feedback.set('Codigo temporal creado.');
+    } catch {
+      this.feedback.set('No pudimos crear el codigo temporal.');
+    } finally {
+      this.submitting.set(false);
+    }
+  }
+
+  protected async revokeAccessCode(accessCode: AccessCode): Promise<void> {
+    if (this.submitting()) {
+      return;
+    }
+
+    this.feedback.set('');
+    this.submitting.set(true);
+
+    try {
+      await firstValueFrom(this.caregiversApiService.revokeAccessCode(accessCode.id));
+      this.accessCodes.update((accessCodes) =>
+        accessCodes.map((currentAccessCode) =>
+          currentAccessCode.id === accessCode.id
+            ? { ...currentAccessCode, isActive: false, revokedAt: new Date().toISOString() }
+            : currentAccessCode,
+        ),
+      );
+      this.feedback.set('Codigo temporal revocado.');
+    } catch {
+      this.feedback.set('No pudimos revocar el codigo temporal.');
+    } finally {
+      this.submitting.set(false);
+    }
+  }
+
+  protected copyCreatedCode(): void {
+    const code = this.createdAccessCode()?.code;
+    if (!code) {
+      return;
+    }
+
+    void navigator.clipboard?.writeText(code);
+    this.feedback.set('Codigo copiado.');
+  }
+
+  protected guestAccessUrl(accessCode: CreatedAccessCode): string {
+    return `${window.location.origin}/#/acceso-cuidador?code=${encodeURIComponent(accessCode.code)}`;
+  }
+
+  protected qrCodeUrl(accessCode: CreatedAccessCode): string {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(this.guestAccessUrl(accessCode))}`;
+  }
+
+  protected accessCodePurposeLabel(purpose: AccessCode['purpose']): string {
+    return purpose === 'veterinarian' ? 'Veterinario' : 'Cuidador';
+  }
+
+  protected accessCodeStatusLabel(accessCode: AccessCode): string {
+    if (accessCode.isActive) {
+      return 'Activo';
+    }
+
+    return accessCode.revokedAt ? 'Revocado' : 'Vencido';
+  }
+
   protected presetLabel(preset: CaregiverPreset): string {
     return {
       viewer: 'Solo ver',
@@ -150,12 +252,14 @@ export class CaregiversPage implements OnInit {
     this.loading.set(true);
 
     try {
-      const [pets, caregivers] = await Promise.all([
+      const [pets, caregivers, accessCodes] = await Promise.all([
         firstValueFrom(this.petsApiService.listPets()),
         firstValueFrom(this.caregiversApiService.listCaregivers()),
+        this.isOwnerMode() ? firstValueFrom(this.caregiversApiService.listAccessCodes()) : Promise.resolve([]),
       ]);
       this.pets.set(pets);
       this.caregivers.set(caregivers);
+      this.accessCodes.set(accessCodes);
       this.resetForm();
     } catch {
       this.feedback.set('No pudimos cargar cuidadores.');
@@ -173,5 +277,22 @@ export class CaregiversPage implements OnInit {
       preset: 'caregiver',
       notes: '',
     });
+    this.accessCodeForm.reset({
+      petId: this.ownerPets()[0]?.id ?? '',
+      duration: '24h',
+      purpose: 'caregiver',
+    });
+  }
+
+  private expiresAtFor(duration: string): string {
+    const expiresAt = new Date();
+    const hoursByDuration: Record<string, number> = {
+      '1h': 1,
+      '24h': 24,
+      '3d': 72,
+      '7d': 168,
+    };
+    expiresAt.setHours(expiresAt.getHours() + (hoursByDuration[duration] ?? 24));
+    return expiresAt.toISOString();
   }
 }

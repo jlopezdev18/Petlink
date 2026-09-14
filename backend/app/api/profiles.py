@@ -62,6 +62,7 @@ def get_or_create_profile(db: DbSession, current_user: CurrentUser) -> Profile:
         id=current_user.id,
         email=clean_email(current_user.email),
         full_name=default_full_name(current_user.email),
+        account_type="owner",
     )
     db.add(profile)
     db.commit()
@@ -74,6 +75,7 @@ def serialize_profile(profile: Profile, email: str | None) -> ProfileResponse:
         id=profile.id,
         email=profile.email or email,
         fullName=profile.full_name,
+        accountType=profile.account_type,
         phone=profile.phone or "",
         avatarUrl=profile.avatar_url,
     )

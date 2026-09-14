@@ -19,6 +19,7 @@
         <mat-progress-spinner diameter="46" mode="indeterminate" />
       </section>
     } @else {
+      @if (isOwnerMode()) {
       <section class="tool-panel" aria-labelledby="caregiver-form-title">
         <h2 id="caregiver-form-title">{{ editingCaregiver() ? 'Editar permisos' : 'Autorizar cuidador' }}</h2>
 
@@ -51,7 +52,6 @@
               <mat-select formControlName="preset">
                 <mat-option value="viewer">Solo ver</mat-option>
                 <mat-option value="caregiver">Cuidador</mat-option>
-                <mat-option value="veterinarian">Veterinario</mat-option>
               </mat-select>
             </mat-form-field>
 
@@ -72,6 +72,117 @@
             </button>
           </div>
         </form>
+      </section>
+
+      <section class="tool-panel" aria-labelledby="access-code-form-title">
+        <div class="panel-heading">
+          <div>
+            <h2 id="access-code-form-title">Codigo temporal</h2>
+            <p>Comparte acceso de solo lectura para cuidar medicamentos sin registro.</p>
+          </div>
+        </div>
+
+        <form [formGroup]="accessCodeForm" (ngSubmit)="createAccessCode()" novalidate>
+          <div class="form-grid compact-grid">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Mascota</mat-label>
+              <mat-icon matPrefix>pets</mat-icon>
+              <mat-select formControlName="petId">
+                @for (pet of ownerPets(); track pet.id) {
+                  <mat-option [value]="pet.id">{{ pet.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Tipo</mat-label>
+              <mat-icon matPrefix>badge</mat-icon>
+              <mat-select formControlName="purpose">
+                <mat-option value="caregiver">Cuidador</mat-option>
+                <mat-option value="veterinarian">Veterinario</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Vence en</mat-label>
+              <mat-icon matPrefix>timer</mat-icon>
+              <mat-select formControlName="duration">
+                <mat-option value="1h">1 hora</mat-option>
+                <mat-option value="24h">24 horas</mat-option>
+                <mat-option value="3d">3 dias</mat-option>
+                <mat-option value="7d">7 dias</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="form-actions">
+            <button mat-flat-button class="primary-action" type="submit" [disabled]="submitting() || ownerPets().length === 0">
+              <mat-icon>vpn_key</mat-icon>
+              <span>Crear codigo</span>
+            </button>
+          </div>
+        </form>
+
+        @if (createdAccessCode()) {
+          <div class="code-reveal" role="status">
+            <div>
+              <span>{{ accessCodePurposeLabel(createdAccessCode()!.purpose) }} temporal</span>
+              <strong>{{ createdAccessCode()?.code }}</strong>
+              <a class="guest-link" [href]="guestAccessUrl(createdAccessCode()!)" target="_blank" rel="noreferrer">
+                Abrir acceso
+              </a>
+            </div>
+            <img class="qr-code" [src]="qrCodeUrl(createdAccessCode()!)" alt="QR de acceso temporal" />
+            <button mat-stroked-button type="button" (click)="copyCreatedCode()">
+              <mat-icon>content_copy</mat-icon>
+              <span>Copiar</span>
+            </button>
+          </div>
+        }
+      </section>
+
+      <section class="list-section" aria-label="Codigos temporales">
+        <h2>Codigos temporales</h2>
+
+        <div class="item-grid">
+          @for (accessCode of accessCodes(); track accessCode.id) {
+            <article class="item-card compact">
+              <div class="card-heading">
+                <div>
+                  <h3>{{ accessCode.petName }}</h3>
+                  <p>{{ accessCodePurposeLabel(accessCode.purpose) }} - {{ accessCodeStatusLabel(accessCode) }}</p>
+                </div>
+                <span class="status-pill" [class.inactive-pill]="!accessCode.isActive">
+                  {{ accessCodeStatusLabel(accessCode) }}
+                </span>
+              </div>
+              <dl>
+                <div>
+                  <dt>Vence</dt>
+                  <dd>{{ accessCode.expiresAt | date: 'short' }}</dd>
+                </div>
+                <div>
+                  <dt>Ultimo uso</dt>
+                  <dd>{{ accessCode.lastUsedAt ? (accessCode.lastUsedAt | date: 'short') : 'Sin uso' }}</dd>
+                </div>
+              </dl>
+              @if (accessCode.isActive) {
+                <div class="card-actions">
+                  <button mat-button type="button" class="danger-action" [disabled]="submitting()" (click)="revokeAccessCode(accessCode)">
+                    <mat-icon>block</mat-icon>
+                    <span>Revocar</span>
+                  </button>
+                </div>
+              }
+            </article>
+          } @empty {
+            <div class="empty-state">
+              <mat-icon>vpn_key_off</mat-icon>
+              <h2>No hay codigos temporales</h2>
+              <p>Crea un codigo para cuidadores que no necesitan registrarse.</p>
+            </div>
+          }
+        </div>
       </section>
 
       <section class="list-section" aria-label="Cuidadores autorizados">
@@ -117,6 +228,7 @@
           }
         </div>
       </section>
+      }
 
       @if (receivedAccess().length > 0) {
         <section class="list-section" aria-label="Mascotas compartidas contigo">
@@ -137,6 +249,14 @@
                 </div>
               </article>
             }
+          </div>
+        </section>
+      } @else if (!isOwnerMode()) {
+        <section class="list-section" aria-label="Sin mascotas asignadas">
+          <div class="empty-state">
+            <mat-icon>pets</mat-icon>
+            <h2>No tienes mascotas asignadas</h2>
+            <p>Cuando un propietario te autorice como cuidador, veras aqui sus mascotas compartidas.</p>
           </div>
         </section>
       }

@@ -9,10 +9,12 @@
         <p class="summary">{{ petCountLabel() }}</p>
       </div>
 
-      <button mat-flat-button class="add-button" type="button" (click)="toggleForm()">
-        <mat-icon>{{ showForm() ? 'close' : 'add' }}</mat-icon>
-        <span>{{ showForm() ? 'Cancelar' : 'Agregar mascota' }}</span>
-      </button>
+      @if (isOwnerMode()) {
+        <button mat-flat-button class="add-button" type="button" (click)="toggleForm()">
+          <mat-icon>{{ showForm() ? 'close' : 'add' }}</mat-icon>
+          <span>{{ showForm() ? 'Cancelar' : 'Agregar mascota' }}</span>
+        </button>
+      }
     </section>
 
     @if (feedback()) {
@@ -156,26 +158,32 @@
             [class.female-card]="pet.sex === 'Hembra'"
             [class.male-card]="pet.sex === 'Macho'"
           >
-            <div class="card-actions" aria-label="Acciones de mascota">
-              <button
-                mat-icon-button
-                class="edit-card-button"
-                type="button"
-                [attr.aria-label]="'Editar ' + pet.name"
-                (click)="editPet(pet)"
-              >
-                <mat-icon>edit</mat-icon>
-              </button>
-              <button
-                mat-icon-button
-                class="delete-card-button"
-                type="button"
-                [attr.aria-label]="'Eliminar ' + pet.name"
-                (click)="requestDelete(pet)"
-              >
-                <mat-icon>delete_outline</mat-icon>
-              </button>
-            </div>
+            @if (isOwnerMode() && (pet.canUpdatePet || pet.isOwner)) {
+              <div class="card-actions" aria-label="Acciones de mascota">
+                @if (pet.canUpdatePet) {
+                  <button
+                    mat-icon-button
+                    class="edit-card-button"
+                    type="button"
+                    [attr.aria-label]="'Editar ' + pet.name"
+                    (click)="editPet(pet)"
+                  >
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                }
+                @if (pet.isOwner) {
+                  <button
+                    mat-icon-button
+                    class="delete-card-button"
+                    type="button"
+                    [attr.aria-label]="'Eliminar ' + pet.name"
+                    (click)="requestDelete(pet)"
+                  >
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                }
+              </div>
+            }
 
             <div class="pet-photo">
               @if (pet.photoUrl) {
@@ -226,7 +234,7 @@
           <div class="empty-state">
             <mat-icon>pets</mat-icon>
             <h2>No hay mascotas registradas</h2>
-            <p>Agrega la primera mascota para empezar su seguimiento.</p>
+            <p>{{ isOwnerMode() ? 'Agrega la primera mascota para empezar su seguimiento.' : 'Cuando te asignen una mascota, aparecera aqui.' }}</p>
           </div>
         }
       </section>

@@ -29,6 +29,7 @@ def list_prescriptions(
     current_user: CurrentUserDep,
     db: DbSession,
 ) -> PrescriptionListResponse:
+    require_owner_mode(current_user)
     pet = get_owned_pet_or_404(db, current_user.id, petId)
     prescriptions = db.scalars(
         select(Prescription)
@@ -53,6 +54,7 @@ def create_prescription(
     notes: Annotated[str, Form()] = "",
     file: Annotated[UploadFile, File()] = ...,
 ) -> PrescriptionResponse:
+    require_owner_mode(current_user)
     pet = get_owned_pet_or_404(db, current_user.id, petId)
     medication = get_pet_medication(db, medicationId, pet.id)
     path, size_bytes = upload_prescription_file(current_user.id, pet.id, file)
@@ -88,6 +90,7 @@ def update_prescription(
     notes: Annotated[str, Form()] = "",
     file: Annotated[UploadFile | None, File()] = None,
 ) -> PrescriptionResponse:
+    require_owner_mode(current_user)
     prescription = get_owned_prescription_or_404(db, current_user.id, prescription_id)
     pet = get_owned_pet_or_404(db, current_user.id, petId)
     medication = get_pet_medication(db, medicationId, pet.id)
@@ -121,6 +124,7 @@ def delete_prescription(
     current_user: CurrentUserDep,
     db: DbSession,
 ) -> None:
+    require_owner_mode(current_user)
     prescription = get_owned_prescription_or_404(db, current_user.id, prescription_id)
     file_path = prescription.file_path
     db.delete(prescription)
@@ -205,3 +209,8 @@ def clean_optional_text(value: str | None) -> str | None:
 
 def get_storage() -> PetFileStorage:
     return PetFileStorage(get_settings())
+
+
+def require_owner_mode(current_user: CurrentUserDep) -> None:
+    if current_user.account_type != "owner":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Owner mode required.")

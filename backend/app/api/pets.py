@@ -32,6 +32,10 @@ SEX_TO_UI = {"male": "Macho", "female": "Hembra", "unknown": ""}
 
 @router.get("", response_model=PetListResponse)
 def list_pets(current_user: CurrentUserDep, db: DbSession) -> PetListResponse:
+    ownership_filter = PetCaregiver.id.is_not(None) if current_user.account_type == "caregiver" else or_(
+        Pet.owner_id == current_user.id,
+        PetCaregiver.id.is_not(None),
+    )
     pets = db.scalars(
         select(Pet)
         .outerjoin(
@@ -41,11 +45,11 @@ def list_pets(current_user: CurrentUserDep, db: DbSession) -> PetListResponse:
             & (PetCaregiver.status == "accepted")
             & (PetCaregiver.can_view_pet.is_(True)),
         )
-        .where(or_(Pet.owner_id == current_user.id, PetCaregiver.id.is_not(None)))
+        .where(ownership_filter)
         .order_by(Pet.created_at.desc())
     ).all()
 
-    return PetListResponse(pets=[serialize_pet(db, pet, current_user.id) for pet in pets])
+    return PetListResponse(pets=[serialize_pet(db, pet, current_user.id, current_user.account_type) for pet in pets])
 
 
 @router.post("", response_model=PetResponse, status_code=status.HTTP_201_CREATED)
@@ -62,6 +66,7 @@ def create_pet(
     notes: Annotated[str, Form()] = "",
     photo: Annotated[UploadFile | None, File()] = None,
 ) -> PetResponse:
+    require_owner_mode(current_user)
     get_or_create_profile(db, current_user)
 
     pet = Pet(
@@ -84,7 +89,7 @@ def create_pet(
         db.commit()
         db.refresh(pet)
 
-    return serialize_pet(db, pet, current_user.id)
+    return serialize_pet(db, pet, current_user.id, current_user.account_type)
 
 
 @router.put("/{pet_id}", response_model=PetResponse)
@@ -103,7 +108,8 @@ def update_pet(
     removePhoto: Annotated[bool, Form()] = False,
     photo: Annotated[UploadFile | None, File()] = None,
 ) -> PetResponse:
-    pet = get_updatable_pet(db, current_user.id, pet_id)
+    require_owner_mode(current_user)
+    pet = get_owned_pet_or_404(db, current_user.id, pet_id)
     previous_photo_path = pet.photo_url
 
     pet.name = clean_required_text(name, "name")
@@ -126,11 +132,12 @@ def update_pet(
     if previous_photo_path and previous_photo_path != pet.photo_url:
         get_storage().delete_file(previous_photo_path)
 
-    return serialize_pet(db, pet, current_user.id)
+    return serialize_pet(db, pet, current_user.id, current_user.account_type)
 
 
 @router.delete("/{pet_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_pet(pet_id: UUID, current_user: CurrentUserDep, db: DbSession) -> None:
+    require_owner_mode(current_user)
     pet = get_owned_pet_or_404(db, current_user.id, pet_id)
     photo_path = pet.photo_url
     db.delete(pet)
@@ -138,8 +145,8 @@ def delete_pet(pet_id: UUID, current_user: CurrentUserDep, db: DbSession) -> Non
     get_storage().delete_file(photo_path)
 
 
-def serialize_pet(db: DbSession, pet: Pet, user_id: UUID) -> PetResponse:
-    is_owner = pet.owner_id == user_id
+def serialize_pet(db: DbSession, pet: Pet, user_id: UUID, account_type: str = "owner") -> PetResponse:
+    is_owner = pet.owner_id == user_id and account_type == "owner"
 
     return PetResponse(
         id=pet.id,
@@ -155,10 +162,16 @@ def serialize_pet(db: DbSession, pet: Pet, user_id: UUID) -> PetResponse:
         photoUrl=get_storage().create_signed_url(pet.photo_url),
         photoPath=pet.photo_url,
         isOwner=is_owner,
-        canUpdatePet=is_owner or has_pet_permission(db, user_id, pet.id, "can_update_pet"),
+        canUpdatePet=is_owner
+        or (account_type == "owner" and has_pet_permission(db, user_id, pet.id, "can_update_pet")),
         canManageMedications=is_owner
-        or has_pet_permission(db, user_id, pet.id, "can_manage_medications"),
+        or (account_type == "owner" and has_pet_permission(db, user_id, pet.id, "can_manage_medications")),
     )
+
+
+def require_owner_mode(current_user: CurrentUserDep) -> None:
+    if current_user.account_type != "owner":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Owner mode required.")
 
 
 def upload_photo_for_pet(user_id: UUID, pet_id: UUID, photo: UploadFile) -> str:

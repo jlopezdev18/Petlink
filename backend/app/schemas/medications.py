@@ -47,3 +47,15 @@ class MedicationLogResponse(MedicationLogRequest):
 
     id: UUID
     medication_id: UUID
+
+
+class MedicationAdministrationRequest(BaseModel):
+    notes: str | None = None
+
+
+class MedicationAdministrationResponse(BaseModel):
+    id: UUID
+    medicationId: UUID
+    administeredAt: datetime
+    status: str
+    notes: str

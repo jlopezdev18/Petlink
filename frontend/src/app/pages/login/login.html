@@ -64,6 +64,14 @@
       </button>
     </div>
 
+    <div class="account-type" role="group" aria-label="Tipo de inicio de sesion">
+      <span>Entrar como</span>
+      <mat-radio-group formControlName="accountType">
+        <mat-radio-button value="owner">Propietario</mat-radio-button>
+        <mat-radio-button value="caregiver">Cuidador</mat-radio-button>
+      </mat-radio-group>
+    </div>
+
     <button mat-flat-button class="primary-action" type="submit">Iniciar sesión</button>
   </form>
 

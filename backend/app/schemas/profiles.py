@@ -15,6 +15,7 @@ class ProfileResponse(BaseModel):
     id: UUID
     email: str | None
     fullName: str
+    accountType: str
     phone: str
     avatarUrl: str | None
 

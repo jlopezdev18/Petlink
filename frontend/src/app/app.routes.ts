@@ -12,6 +12,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/register/register').then((page) => page.RegisterPage),
   },
   {
+    path: 'acceso-cuidador',
+    loadComponent: () => import('./pages/guest-access/guest-access').then((page) => page.GuestAccessPage),
+  },
+  {
     path: 'inicio',
     canActivate: [authGuard],
     loadComponent: () => import('./pages/home/home').then((page) => page.HomePage),

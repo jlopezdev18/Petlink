@@ -33,3 +33,27 @@ class CaregiverResponse(BaseModel):
     notes: str
     isOwner: bool
     createdAt: datetime
+
+
+class AccessCodeCreateRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    pet_id: UUID = Field(alias="petId")
+    expires_at: datetime = Field(alias="expiresAt")
+    purpose: str = "caregiver"
+
+
+class AccessCodeResponse(BaseModel):
+    id: UUID
+    petId: UUID
+    petName: str
+    purpose: str
+    expiresAt: datetime
+    revokedAt: datetime | None
+    lastUsedAt: datetime | None
+    createdAt: datetime
+    isActive: bool
+
+
+class AccessCodeCreateResponse(AccessCodeResponse):
+    code: str

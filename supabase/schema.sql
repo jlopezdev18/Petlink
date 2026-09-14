@@ -19,6 +19,7 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
   full_name text not null,
+  account_type text not null default 'owner' check (account_type in ('owner', 'caregiver')),
   phone text,
   avatar_url text,
   created_at timestamptz not null default now(),
@@ -28,6 +29,22 @@ create table if not exists public.profiles (
 alter table public.profiles
 add column if not exists email text;
 
+alter table public.profiles
+add column if not exists account_type text not null default 'owner';
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'profiles_account_type_check'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles
+    add constraint profiles_account_type_check check (account_type in ('owner', 'caregiver'));
+  end if;
+end $$;
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -35,7 +52,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  insert into public.profiles (id, email, full_name)
+  insert into public.profiles (id, email, full_name, account_type)
   values (
     new.id,
     lower(new.email),
@@ -43,7 +60,8 @@ begin
       nullif(new.raw_user_meta_data ->> 'full_name', ''),
       nullif(split_part(new.email, '@', 1), ''),
       'Nuevo usuario'
-    )
+    ),
+    coalesce(nullif(new.raw_user_meta_data ->> 'account_type', ''), 'owner')
   )
   on conflict (id) do nothing;
 
@@ -123,6 +141,36 @@ create table if not exists public.pet_caregivers (
   unique (pet_id, caregiver_id),
   check (owner_id <> caregiver_id)
 );
+
+create table if not exists public.pet_access_codes (
+  id uuid primary key default gen_random_uuid(),
+  pet_id uuid not null,
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  code_hash text not null unique,
+  purpose text not null default 'caregiver' check (purpose in ('caregiver', 'veterinarian')),
+  expires_at timestamptz not null,
+  last_used_at timestamptz,
+  revoked_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  foreign key (pet_id, owner_id) references public.pets(id, owner_id) on delete cascade
+);
+
+alter table public.pet_access_codes
+add column if not exists purpose text not null default 'caregiver';
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'pet_access_codes_purpose_check'
+      and conrelid = 'public.pet_access_codes'::regclass
+  ) then
+    alter table public.pet_access_codes
+    add constraint pet_access_codes_purpose_check check (purpose in ('caregiver', 'veterinarian'));
+  end if;
+end $$;
 
 create table if not exists public.medications (
   id uuid primary key default gen_random_uuid(),
@@ -228,6 +276,11 @@ create trigger set_pet_caregivers_updated_at
 before update on public.pet_caregivers
 for each row execute function public.set_updated_at();
 
+drop trigger if exists set_pet_access_codes_updated_at on public.pet_access_codes;
+create trigger set_pet_access_codes_updated_at
+before update on public.pet_access_codes
+for each row execute function public.set_updated_at();
+
 drop trigger if exists set_medications_updated_at on public.medications;
 create trigger set_medications_updated_at
 before update on public.medications
@@ -266,6 +319,11 @@ create index if not exists pet_caregivers_caregiver_id_idx on public.pet_caregiv
 create index if not exists pet_caregivers_accepted_caregiver_idx
   on public.pet_caregivers(caregiver_id, pet_id)
   where status = 'accepted';
+create index if not exists pet_access_codes_owner_id_idx on public.pet_access_codes(owner_id);
+create index if not exists pet_access_codes_pet_id_idx on public.pet_access_codes(pet_id);
+create index if not exists pet_access_codes_active_idx
+  on public.pet_access_codes(code_hash, expires_at)
+  where revoked_at is null;
 create index if not exists medications_pet_id_idx on public.medications(pet_id);
 create index if not exists medication_logs_medication_id_idx on public.medication_logs(medication_id);
 create index if not exists medication_logs_scheduled_for_idx on public.medication_logs(scheduled_for);
@@ -281,6 +339,7 @@ create index if not exists pet_documents_pet_id_idx on public.pet_documents(pet_
 alter table public.profiles enable row level security;
 alter table public.pets enable row level security;
 alter table public.pet_caregivers enable row level security;
+alter table public.pet_access_codes enable row level security;
 alter table public.medications enable row level security;
 alter table public.medication_logs enable row level security;
 alter table public.prescriptions enable row level security;
@@ -293,6 +352,7 @@ grant select, insert, update, delete on
   public.profiles,
   public.pets,
   public.pet_caregivers,
+  public.pet_access_codes,
   public.medications,
   public.medication_logs,
   public.prescriptions,
@@ -366,6 +426,39 @@ using (
   owner_id = (select auth.uid())
   or caregiver_id = (select auth.uid())
 );
+
+drop policy if exists "pet_access_codes_select_owner" on public.pet_access_codes;
+create policy "pet_access_codes_select_owner"
+on public.pet_access_codes for select
+to authenticated
+using (owner_id = (select auth.uid()));
+
+drop policy if exists "pet_access_codes_insert_owner" on public.pet_access_codes;
+create policy "pet_access_codes_insert_owner"
+on public.pet_access_codes for insert
+to authenticated
+with check (
+  owner_id = (select auth.uid())
+  and exists (
+    select 1
+    from public.pets
+    where pets.id = pet_access_codes.pet_id
+      and pets.owner_id = (select auth.uid())
+  )
+);
+
+drop policy if exists "pet_access_codes_update_owner" on public.pet_access_codes;
+create policy "pet_access_codes_update_owner"
+on public.pet_access_codes for update
+to authenticated
+using (owner_id = (select auth.uid()))
+with check (owner_id = (select auth.uid()));
+
+drop policy if exists "pet_access_codes_delete_owner" on public.pet_access_codes;
+create policy "pet_access_codes_delete_owner"
+on public.pet_access_codes for delete
+to authenticated
+using (owner_id = (select auth.uid()));
 
 drop policy if exists "pets_select_own" on public.pets;
 drop policy if exists "pets_select_access" on public.pets;
