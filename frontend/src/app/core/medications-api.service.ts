@@ -80,6 +80,12 @@ export class MedicationsApiService {
       .pipe(tap(() => this.clearCache(payload.petId)));
   }
 
+  deleteMedication(medication: Medication): Observable<void> {
+    return this.http
+      .delete<void>(`${this.baseUrl}/${medication.id}`)
+      .pipe(tap(() => this.clearCache(medication.petId)));
+  }
+
   administerMedication(medicationId: string, notes = ''): Observable<MedicationAdministration> {
     return this.http.post<MedicationAdministration>(`${this.baseUrl}/${medicationId}/administer`, { notes });
   }

@@ -9,15 +9,24 @@
         <p class="summary">Gestiona tratamientos activos e historicos por mascota.</p>
       </div>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Mascota</mat-label>
-        <mat-icon matPrefix>pets</mat-icon>
-        <mat-select [value]="selectedPetId()" (selectionChange)="changePet($event.value)">
-          @for (pet of pets(); track pet.id) {
-            <mat-option [value]="pet.id">{{ pet.name }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      <div class="header-actions">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Mascota</mat-label>
+          <mat-icon matPrefix>pets</mat-icon>
+          <mat-select [value]="selectedPetId()" (selectionChange)="changePet($event.value)">
+            @for (pet of pets(); track pet.id) {
+              <mat-option [value]="pet.id">{{ pet.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        @if (canManageSelectedPet()) {
+          <button mat-flat-button class="primary-action" type="button" (click)="openCreateMedication()">
+            <mat-icon>add</mat-icon>
+            <span>Agregar medicamento</span>
+          </button>
+        }
+      </div>
     </section>
 
     @if (feedback()) {
@@ -29,11 +38,9 @@
         <mat-progress-spinner diameter="46" mode="indeterminate" />
       </section>
     } @else {
-      @if (canManageSelectedPet()) {
-        <section class="tool-panel" aria-labelledby="medication-form-title">
-          <h2 id="medication-form-title">{{ editingMedication() ? 'Editar medicamento' : 'Agregar medicamento' }}</h2>
-
-          <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      @if (isMedicationFormOpen()) {
+        <app-entity-modal [title]="modalTitle()" (closed)="cancelEdit()">
+          <form id="medication-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
             <div class="form-grid">
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
                 <mat-label>Nombre</mat-label>
@@ -80,18 +87,60 @@
                 <textarea matInput rows="3" formControlName="instructions"></textarea>
               </mat-form-field>
             </div>
-
-            <div class="form-actions">
-              @if (editingMedication()) {
-                <button mat-button type="button" [disabled]="submitting()" (click)="cancelEdit()">Cancelar</button>
-              }
-              <button mat-flat-button class="primary-action" type="submit" [disabled]="submitting()">
-                <mat-icon>save</mat-icon>
-                <span>{{ editingMedication() ? 'Guardar cambios' : 'Guardar medicamento' }}</span>
-              </button>
-            </div>
           </form>
-        </section>
+
+          <div modal-actions>
+            <button mat-button type="button" [disabled]="submitting()" (click)="cancelEdit()">Cancelar</button>
+            <button mat-flat-button class="primary-action" type="submit" form="medication-form" [disabled]="submitting()">
+              <mat-icon>save</mat-icon>
+              <span>{{ editingMedication() ? 'Guardar cambios' : 'Guardar medicamento' }}</span>
+            </button>
+          </div>
+        </app-entity-modal>
+      }
+
+      @if (viewingMedication(); as medication) {
+        <app-entity-modal [title]="medication.name" description="Datos del tratamiento." (closed)="closeMedicationModal()">
+          <dl class="view-details">
+            <div>
+              <dt>Nombre</dt>
+              <dd>{{ medication.name }}</dd>
+            </div>
+            <div>
+              <dt>Estado</dt>
+              <dd>{{ medication.isActive ? 'Activo' : 'Inactivo' }}</dd>
+            </div>
+            <div>
+              <dt>Dosis</dt>
+              <dd>{{ medication.dosage }}</dd>
+            </div>
+            <div>
+              <dt>Frecuencia</dt>
+              <dd>{{ medication.frequency }}</dd>
+            </div>
+            <div>
+              <dt>Inicio</dt>
+              <dd>{{ medication.startDate }}</dd>
+            </div>
+            <div>
+              <dt>Fin</dt>
+              <dd>{{ medication.endDate || 'Sin definir' }}</dd>
+            </div>
+            <div>
+              <dt>Veterinario</dt>
+              <dd>{{ medication.prescribingVet || 'Sin registrar' }}</dd>
+            </div>
+          </dl>
+
+          <div class="view-notes">
+            <h3>Instrucciones</h3>
+            <p>{{ medication.instructions || 'Sin instrucciones registradas.' }}</p>
+          </div>
+
+          <div modal-actions>
+            <button mat-flat-button class="primary-action" type="button" (click)="closeMedicationModal()">Cerrar</button>
+          </div>
+        </app-entity-modal>
       }
 
       <section class="list-section" aria-label="Listado de medicamentos">
@@ -130,32 +179,60 @@
                   <p class="notes">{{ medication.instructions }}</p>
                 }
 
-                @if (canManageSelectedPet() || (canAdministerSelectedPet() && medication.isActive)) {
-                  <div class="card-actions">
-                    @if (canManageSelectedPet()) {
-                      <button mat-stroked-button type="button" [disabled]="submitting()" (click)="editMedication(medication)">
-                        <mat-icon>edit</mat-icon>
-                        <span>Editar</span>
-                      </button>
-                      <button mat-button type="button" [disabled]="submitting()" (click)="toggleMedication(medication)">
-                        <mat-icon>{{ medication.isActive ? 'toggle_off' : 'toggle_on' }}</mat-icon>
-                        <span>{{ medication.isActive ? 'Desactivar' : 'Activar' }}</span>
-                      </button>
-                    }
-                    @if (canAdministerSelectedPet() && medication.isActive) {
+                <div class="card-actions">
+                  <button
+                    mat-icon-button
+                    class="icon-action"
+                    type="button"
+                    [attr.aria-label]="'Ver datos de ' + medication.name"
+                    [attr.title]="'Ver datos de ' + medication.name"
+                    (click)="viewMedication(medication)"
+                  >
+                    <mat-icon>visibility</mat-icon>
+                  </button>
+                  @if (canManageSelectedPet()) {
+                    <button
+                      mat-icon-button
+                      class="icon-action"
+                      type="button"
+                      [disabled]="submitting()"
+                      [attr.aria-label]="'Editar ' + medication.name"
+                      [attr.title]="'Editar ' + medication.name"
+                      (click)="editMedication(medication)"
+                    >
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-button type="button" [disabled]="submitting()" (click)="toggleMedication(medication)">
+                      <mat-icon>{{ medication.isActive ? 'toggle_off' : 'toggle_on' }}</mat-icon>
+                      <span>{{ medication.isActive ? 'Desactivar' : 'Activar' }}</span>
+                    </button>
+                    @if (!medication.isActive) {
                       <button
-                        mat-flat-button
-                        class="primary-action"
+                        mat-icon-button
+                        class="icon-action danger-icon-action"
                         type="button"
-                        [disabled]="submitting() || isAdministered(medication)"
-                        (click)="administerMedication(medication)"
+                        [disabled]="submitting()"
+                        [attr.aria-label]="'Eliminar ' + medication.name"
+                        [attr.title]="'Eliminar ' + medication.name"
+                        (click)="requestDeleteMedication(medication)"
                       >
-                        <mat-icon>{{ isAdministered(medication) ? 'check_circle' : 'done' }}</mat-icon>
-                        <span>{{ isAdministered(medication) ? 'Administrado' : 'Administrar' }}</span>
+                        <mat-icon>delete_outline</mat-icon>
                       </button>
                     }
-                  </div>
-                }
+                  }
+                  @if (canAdministerSelectedPet() && medication.isActive) {
+                    <button
+                      mat-flat-button
+                      class="primary-action"
+                      type="button"
+                      [disabled]="submitting() || isAdministered(medication)"
+                      (click)="administerMedication(medication)"
+                    >
+                      <mat-icon>{{ isAdministered(medication) ? 'check_circle' : 'done' }}</mat-icon>
+                      <span>{{ isAdministered(medication) ? 'Administrado' : 'Administrar' }}</span>
+                    </button>
+                  }
+                </div>
               </article>
             } @empty {
               <div class="empty-state">
@@ -167,6 +244,33 @@
           </div>
         }
       </section>
+    }
+
+    @if (medicationPendingDelete(); as medication) {
+      <app-entity-modal
+        title="Eliminar medicamento"
+        [description]="'Seguro que deseas eliminar ' + medication.name + '?'"
+        (closed)="cancelDeleteMedication()"
+      >
+        <div class="delete-warning">
+          <mat-icon>warning</mat-icon>
+          <p>Esta accion solo esta disponible para tratamientos inactivos. Las recetas quedaran como receta general.</p>
+        </div>
+
+        <div modal-actions>
+          <button mat-button type="button" [disabled]="submitting()" (click)="cancelDeleteMedication()">Cancelar</button>
+          <button
+            mat-flat-button
+            class="delete-action"
+            type="button"
+            [disabled]="submitting()"
+            (click)="confirmDeleteMedication()"
+          >
+            <mat-icon>delete_outline</mat-icon>
+            <span>Eliminar</span>
+          </button>
+        </div>
+      </app-entity-modal>
     }
   </main>
 </div>

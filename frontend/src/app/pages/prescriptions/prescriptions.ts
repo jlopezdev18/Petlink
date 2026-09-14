@@ -11,7 +11,10 @@ import { firstValueFrom } from 'rxjs';
 import { Medication, MedicationsApiService } from '../../core/medications-api.service';
 import { Pet, PetsApiService } from '../../core/pets-api.service';
 import { Prescription, PrescriptionsApiService } from '../../core/prescriptions-api.service';
+import { EntityModal } from '../../shared/entity-modal/entity-modal';
 import { Sidebar } from '../../shared/sidebar/sidebar';
+
+type PrescriptionModalMode = 'create' | 'edit' | 'view' | null;
 
 @Component({
   selector: 'app-prescriptions-page',
@@ -24,6 +27,7 @@ import { Sidebar } from '../../shared/sidebar/sidebar';
     MatInputModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    EntityModal,
   ],
   templateUrl: './prescriptions.html',
   styleUrl: './prescriptions.css',
@@ -43,9 +47,22 @@ export class PrescriptionsPage implements OnInit {
   protected readonly medications = signal<Medication[]>([]);
   protected readonly prescriptions = signal<Prescription[]>([]);
   protected readonly selectedFile = signal<File | null>(null);
-  protected readonly editingPrescription = signal<Prescription | null>(null);
+  protected readonly modalMode = signal<PrescriptionModalMode>(null);
+  protected readonly selectedPrescription = signal<Prescription | null>(null);
 
   protected readonly ownerPets = computed(() => this.pets().filter((pet) => pet.isOwner));
+  protected readonly editingPrescription = computed(() =>
+    this.modalMode() === 'edit' ? this.selectedPrescription() : null,
+  );
+  protected readonly viewingPrescription = computed(() =>
+    this.modalMode() === 'view' ? this.selectedPrescription() : null,
+  );
+  protected readonly isPrescriptionFormOpen = computed(() =>
+    this.modalMode() === 'create' || this.modalMode() === 'edit',
+  );
+  protected readonly modalTitle = computed(() =>
+    this.editingPrescription() ? 'Editar receta' : 'Subir receta',
+  );
 
   protected readonly form = this.formBuilder.nonNullable.group({
     title: ['', Validators.required],
@@ -61,8 +78,20 @@ export class PrescriptionsPage implements OnInit {
 
   protected async changePet(petId: string): Promise<void> {
     this.selectedPetId.set(petId);
-    this.cancelEdit();
+    this.closePrescriptionModal();
     await Promise.all([this.loadMedications(), this.loadPrescriptions()]);
+  }
+
+  protected openCreatePrescription(): void {
+    if (!this.selectedPetId()) {
+      return;
+    }
+
+    this.feedback.set('');
+    this.selectedPrescription.set(null);
+    this.selectedFile.set(null);
+    this.resetForm();
+    this.modalMode.set('create');
   }
 
   protected selectFile(event: Event): void {
@@ -86,7 +115,7 @@ export class PrescriptionsPage implements OnInit {
   }
 
   protected editPrescription(prescription: Prescription): void {
-    this.editingPrescription.set(prescription);
+    this.selectedPrescription.set(prescription);
     this.selectedFile.set(null);
     this.feedback.set('');
     this.form.reset({
@@ -96,16 +125,28 @@ export class PrescriptionsPage implements OnInit {
       medicationId: prescription.medicationId ?? '',
       notes: prescription.notes,
     });
+    this.modalMode.set('edit');
   }
 
   protected cancelEdit(fileInput?: HTMLInputElement): void {
-    this.editingPrescription.set(null);
+    this.closePrescriptionModal(fileInput);
+  }
+
+  protected closePrescriptionModal(fileInput?: HTMLInputElement): void {
+    this.modalMode.set(null);
+    this.selectedPrescription.set(null);
     this.selectedFile.set(null);
     this.resetForm();
 
     if (fileInput) {
       fileInput.value = '';
     }
+  }
+
+  protected viewPrescription(prescription: Prescription): void {
+    this.feedback.set('');
+    this.selectedPrescription.set(prescription);
+    this.modalMode.set('view');
   }
 
   protected async submit(fileInput: HTMLInputElement): Promise<void> {

@@ -122,6 +122,26 @@ def administer_medication(
     )
 
 
+@router.delete("/{medication_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_medication(
+    medication_id: UUID,
+    current_user: CurrentUserDep,
+    db: DbSession,
+) -> None:
+    require_owner_mode(current_user)
+    medication = get_medication_or_404(db, medication_id)
+    get_medication_manageable_pet(db, current_user.id, medication.pet_id)
+
+    if medication.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Medication must be inactive before deletion.",
+        )
+
+    db.delete(medication)
+    db.commit()
+
+
 def get_medication_or_404(db: DbSession, medication_id: UUID) -> Medication:
     medication = db.scalar(select(Medication).where(Medication.id == medication_id))
 

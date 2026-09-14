@@ -1,0 +1,97 @@
+:host {
+  display: contents;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  border: 0;
+  background: var(--petlink-backdrop);
+}
+
+.entity-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 75;
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(860px, calc(100dvh - 32px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--petlink-line-strong);
+  border-radius: 8px;
+  background: var(--petlink-surface-solid);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+}
+
+.modal-header,
+.modal-actions {
+  flex: 0 0 auto;
+}
+
+.modal-header {
+  padding: 22px 24px 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--petlink-line);
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: var(--petlink-ink);
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.modal-header p {
+  margin: 6px 0 0;
+  color: var(--petlink-muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.modal-body {
+  min-height: 0;
+  padding: 22px 24px;
+  overflow: auto;
+}
+
+.modal-actions {
+  min-height: 76px;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid var(--petlink-line);
+}
+
+@media (max-width: 760px) {
+  .entity-modal {
+    width: min(100vw - 20px, 760px);
+    max-height: calc(100dvh - 20px);
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-actions {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .modal-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions ::ng-deep button,
+  .modal-actions ::ng-deep a {
+    width: 100%;
+  }
+}

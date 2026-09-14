@@ -10,9 +10,9 @@
       </div>
 
       @if (isOwnerMode()) {
-        <button mat-flat-button class="add-button" type="button" (click)="toggleForm()">
-          <mat-icon>{{ showForm() ? 'close' : 'add' }}</mat-icon>
-          <span>{{ showForm() ? 'Cancelar' : 'Agregar mascota' }}</span>
+        <button mat-flat-button class="add-button" type="button" (click)="openCreateForm()">
+          <mat-icon>add</mat-icon>
+          <span>Agregar mascota</span>
         </button>
       }
     </section>
@@ -21,11 +21,9 @@
       <p class="feedback" role="status">{{ feedback() }}</p>
     }
 
-    @if (showForm()) {
-      <section class="pet-form-panel" aria-labelledby="pet-form-title">
-        <h2 id="pet-form-title">{{ formTitle() }}</h2>
-
-        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    @if (isPetFormOpen()) {
+      <app-entity-modal [title]="formTitle()" (closed)="cancelForm()">
+        <form id="pet-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
           <div class="photo-uploader">
             <div class="photo-preview">
               @if (photoPreview()) {
@@ -135,15 +133,77 @@
             </mat-form-field>
           </div>
 
-          <div class="form-actions">
-            <button mat-button type="button" [disabled]="submitting()" (click)="cancelForm()">Cancelar</button>
-            <button mat-flat-button class="save-button" type="submit" [disabled]="submitting() || !hasNewChanges()">
-              <mat-icon>save</mat-icon>
-              <span>{{ saveButtonLabel() }}</span>
-            </button>
-          </div>
         </form>
-      </section>
+
+        <div modal-actions>
+          <button mat-button type="button" [disabled]="submitting()" (click)="cancelForm()">Cancelar</button>
+          <button
+            mat-flat-button
+            class="save-button"
+            type="submit"
+            form="pet-form"
+            [disabled]="submitting() || !hasNewChanges()"
+          >
+            <mat-icon>save</mat-icon>
+            <span>{{ saveButtonLabel() }}</span>
+          </button>
+        </div>
+      </app-entity-modal>
+    }
+
+    @if (viewingPet(); as pet) {
+      <app-entity-modal [title]="pet.name" description="Datos registrados de la mascota." (closed)="closeModal()">
+        <div class="view-summary">
+          <div class="view-photo">
+            @if (pet.photoUrl) {
+              <img [src]="pet.photoUrl" [alt]="'Foto de ' + pet.name" />
+            } @else {
+              <mat-icon aria-hidden="true">{{ pet.species === 'Gato' ? 'cruelty_free' : 'pets' }}</mat-icon>
+            }
+          </div>
+
+          <div class="view-heading">
+            <h3>{{ pet.name }}</h3>
+            <p>{{ pet.species }}{{ pet.breed ? ' - ' + pet.breed : '' }}</p>
+          </div>
+        </div>
+
+        <dl class="view-details">
+          <div>
+            <dt>Especie</dt>
+            <dd>{{ pet.species }}</dd>
+          </div>
+          <div>
+            <dt>Raza</dt>
+            <dd>{{ pet.breed || 'Sin registrar' }}</dd>
+          </div>
+          <div>
+            <dt>Sexo</dt>
+            <dd>{{ pet.sex || 'Sin registrar' }}</dd>
+          </div>
+          <div>
+            <dt>Color</dt>
+            <dd>{{ pet.color || 'Sin registrar' }}</dd>
+          </div>
+          <div>
+            <dt>Nacimiento</dt>
+            <dd>{{ pet.birthDate || 'Sin registrar' }}</dd>
+          </div>
+          <div>
+            <dt>Peso</dt>
+            <dd>{{ pet.weightKg ? pet.weightKg + ' kg' : 'Sin registrar' }}</dd>
+          </div>
+        </dl>
+
+        <div class="view-notes">
+          <h3>Notas</h3>
+          <p>{{ pet.notes || 'Sin notas registradas.' }}</p>
+        </div>
+
+        <div modal-actions>
+          <button mat-flat-button class="save-button" type="button" (click)="closeModal()">Cerrar</button>
+        </div>
+      </app-entity-modal>
     }
 
     @if (loading()) {
@@ -158,14 +218,25 @@
             [class.female-card]="pet.sex === 'Hembra'"
             [class.male-card]="pet.sex === 'Macho'"
           >
-            @if (isOwnerMode() && (pet.canUpdatePet || pet.isOwner)) {
-              <div class="card-actions" aria-label="Acciones de mascota">
+            <div class="card-actions" aria-label="Acciones de mascota">
+              <button
+                mat-icon-button
+                class="view-card-button"
+                type="button"
+                [attr.aria-label]="'Ver datos de ' + pet.name"
+                [attr.title]="'Ver datos de ' + pet.name"
+                (click)="viewPet(pet)"
+              >
+                <mat-icon>visibility</mat-icon>
+              </button>
+              @if (isOwnerMode() && (pet.canUpdatePet || pet.isOwner)) {
                 @if (pet.canUpdatePet) {
                   <button
                     mat-icon-button
                     class="edit-card-button"
                     type="button"
                     [attr.aria-label]="'Editar ' + pet.name"
+                    [attr.title]="'Editar ' + pet.name"
                     (click)="editPet(pet)"
                   >
                     <mat-icon>edit</mat-icon>
@@ -177,13 +248,14 @@
                     class="delete-card-button"
                     type="button"
                     [attr.aria-label]="'Eliminar ' + pet.name"
+                    [attr.title]="'Eliminar ' + pet.name"
                     (click)="requestDelete(pet)"
                   >
                     <mat-icon>delete_outline</mat-icon>
                   </button>
                 }
-              </div>
-            }
+              }
+            </div>
 
             <div class="pet-photo">
               @if (pet.photoUrl) {

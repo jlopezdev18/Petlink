@@ -1,0 +1,30 @@
+<button class="modal-backdrop" type="button" aria-label="Cerrar modal" (click)="close()"></button>
+
+<section
+  class="entity-modal"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-labelledby]="titleId"
+  [attr.aria-describedby]="description ? descriptionId : null"
+>
+  <header class="modal-header">
+    <div>
+      <h2 [id]="titleId">{{ title }}</h2>
+      @if (description) {
+        <p [id]="descriptionId">{{ description }}</p>
+      }
+    </div>
+
+    <button mat-icon-button type="button" aria-label="Cerrar modal" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </header>
+
+  <div class="modal-body">
+    <ng-content />
+  </div>
+
+  <footer class="modal-actions">
+    <ng-content select="[modal-actions]" />
+  </footer>
+</section>

@@ -10,7 +10,10 @@ import { firstValueFrom } from 'rxjs';
 
 import { Medication, MedicationsApiService } from '../../core/medications-api.service';
 import { Pet, PetsApiService } from '../../core/pets-api.service';
+import { EntityModal } from '../../shared/entity-modal/entity-modal';
 import { Sidebar } from '../../shared/sidebar/sidebar';
+
+type MedicationModalMode = 'create' | 'edit' | 'view' | null;
 
 @Component({
   selector: 'app-medications-page',
@@ -23,6 +26,7 @@ import { Sidebar } from '../../shared/sidebar/sidebar';
     MatInputModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    EntityModal,
   ],
   templateUrl: './medications.html',
   styleUrl: './medications.css',
@@ -39,7 +43,9 @@ export class MedicationsPage implements OnInit {
   protected readonly pets = signal<Pet[]>([]);
   protected readonly selectedPetId = signal('');
   protected readonly medications = signal<Medication[]>([]);
-  protected readonly editingMedication = signal<Medication | null>(null);
+  protected readonly modalMode = signal<MedicationModalMode>(null);
+  protected readonly selectedMedication = signal<Medication | null>(null);
+  protected readonly medicationPendingDelete = signal<Medication | null>(null);
   protected readonly administeredMedicationIds = signal<Set<string>>(new Set<string>());
 
   protected readonly selectedPet = computed(() =>
@@ -47,6 +53,18 @@ export class MedicationsPage implements OnInit {
   );
   protected readonly canManageSelectedPet = computed(() => this.selectedPet()?.canManageMedications ?? false);
   protected readonly canAdministerSelectedPet = computed(() => Boolean(this.selectedPet()));
+  protected readonly editingMedication = computed(() =>
+    this.modalMode() === 'edit' ? this.selectedMedication() : null,
+  );
+  protected readonly viewingMedication = computed(() =>
+    this.modalMode() === 'view' ? this.selectedMedication() : null,
+  );
+  protected readonly isMedicationFormOpen = computed(() =>
+    this.modalMode() === 'create' || this.modalMode() === 'edit',
+  );
+  protected readonly modalTitle = computed(() =>
+    this.editingMedication() ? 'Editar medicamento' : 'Agregar medicamento',
+  );
 
   protected readonly form = this.formBuilder.nonNullable.group({
     name: ['', Validators.required],
@@ -64,12 +82,27 @@ export class MedicationsPage implements OnInit {
 
   protected async changePet(petId: string): Promise<void> {
     this.selectedPetId.set(petId);
-    this.cancelEdit();
+    this.closeMedicationModal();
     await this.loadMedications();
   }
 
+  protected openCreateMedication(): void {
+    if (!this.canManageSelectedPet()) {
+      return;
+    }
+
+    this.feedback.set('');
+    this.selectedMedication.set(null);
+    this.resetForm();
+    this.modalMode.set('create');
+  }
+
   protected editMedication(medication: Medication): void {
-    this.editingMedication.set(medication);
+    if (!this.canManageSelectedPet()) {
+      return;
+    }
+
+    this.selectedMedication.set(medication);
     this.feedback.set('');
     this.form.reset({
       name: medication.name,
@@ -80,11 +113,23 @@ export class MedicationsPage implements OnInit {
       prescribingVet: medication.prescribingVet,
       instructions: medication.instructions,
     });
+    this.modalMode.set('edit');
   }
 
   protected cancelEdit(): void {
-    this.editingMedication.set(null);
+    this.closeMedicationModal();
+  }
+
+  protected closeMedicationModal(): void {
+    this.modalMode.set(null);
+    this.selectedMedication.set(null);
     this.resetForm();
+  }
+
+  protected viewMedication(medication: Medication): void {
+    this.feedback.set('');
+    this.selectedMedication.set(medication);
+    this.modalMode.set('view');
   }
 
   protected async submit(): Promise<void> {
@@ -190,6 +235,50 @@ export class MedicationsPage implements OnInit {
 
   protected isAdministered(medication: Medication): boolean {
     return this.administeredMedicationIds().has(medication.id);
+  }
+
+  protected requestDeleteMedication(medication: Medication): void {
+    if (!this.canManageSelectedPet() || medication.isActive) {
+      return;
+    }
+
+    this.feedback.set('');
+    this.medicationPendingDelete.set(medication);
+  }
+
+  protected cancelDeleteMedication(): void {
+    if (!this.submitting()) {
+      this.medicationPendingDelete.set(null);
+    }
+  }
+
+  protected async confirmDeleteMedication(): Promise<void> {
+    const medication = this.medicationPendingDelete();
+
+    if (!medication || medication.isActive || this.submitting() || !this.canManageSelectedPet()) {
+      return;
+    }
+
+    this.submitting.set(true);
+    this.feedback.set('');
+
+    try {
+      await firstValueFrom(this.medicationsApiService.deleteMedication(medication));
+      this.medications.update((medications) =>
+        medications.filter((currentMedication) => currentMedication.id !== medication.id),
+      );
+      this.medicationPendingDelete.set(null);
+
+      if (this.selectedMedication()?.id === medication.id) {
+        this.closeMedicationModal();
+      }
+
+      this.feedback.set(`${medication.name} eliminado.`);
+    } catch {
+      this.feedback.set('No pudimos eliminar el medicamento.');
+    } finally {
+      this.submitting.set(false);
+    }
   }
 
   private async loadPets(): Promise<void> {

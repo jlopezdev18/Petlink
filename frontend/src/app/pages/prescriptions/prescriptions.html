@@ -9,15 +9,28 @@
         <p class="summary">Sube recetas privadas para tus mascotas.</p>
       </div>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Mascota propia</mat-label>
-        <mat-icon matPrefix>pets</mat-icon>
-        <mat-select [value]="selectedPetId()" (selectionChange)="changePet($event.value)">
-          @for (pet of ownerPets(); track pet.id) {
-            <mat-option [value]="pet.id">{{ pet.name }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
+      <div class="header-actions">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Mascota propia</mat-label>
+          <mat-icon matPrefix>pets</mat-icon>
+          <mat-select [value]="selectedPetId()" (selectionChange)="changePet($event.value)">
+            @for (pet of ownerPets(); track pet.id) {
+              <mat-option [value]="pet.id">{{ pet.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <button
+          mat-flat-button
+          class="primary-action"
+          type="button"
+          [disabled]="ownerPets().length === 0"
+          (click)="openCreatePrescription()"
+        >
+          <mat-icon>add</mat-icon>
+          <span>Subir receta</span>
+        </button>
+      </div>
     </section>
 
     @if (feedback()) {
@@ -29,10 +42,9 @@
         <mat-progress-spinner diameter="46" mode="indeterminate" />
       </section>
     } @else {
-      <section class="tool-panel" aria-labelledby="prescription-form-title">
-        <h2 id="prescription-form-title">{{ editingPrescription() ? 'Editar receta' : 'Subir receta' }}</h2>
-
-        <form [formGroup]="form" (ngSubmit)="submit(fileInput)" novalidate>
+      @if (isPrescriptionFormOpen()) {
+        <app-entity-modal [title]="modalTitle()" (closed)="cancelEdit()">
+          <form id="prescription-form" [formGroup]="form" (ngSubmit)="submit(fileInput)" novalidate>
           <div class="form-grid">
             <mat-form-field appearance="outline" subscriptSizing="dynamic">
               <mat-label>Titulo</mat-label>
@@ -87,18 +99,69 @@
             </button>
             <span>{{ selectedFile()?.name || (editingPrescription() ? 'Mantener archivo actual' : 'PDF o imagen') }}</span>
           </div>
+        </form>
 
-          <div class="form-actions">
-            @if (editingPrescription()) {
-              <button mat-button type="button" [disabled]="submitting()" (click)="cancelEdit(fileInput)">Cancelar</button>
-            }
-            <button mat-flat-button class="primary-action" type="submit" [disabled]="submitting() || ownerPets().length === 0">
+          <div modal-actions>
+            <button mat-button type="button" [disabled]="submitting()" (click)="cancelEdit(fileInput)">Cancelar</button>
+            <button
+              mat-flat-button
+              class="primary-action"
+              type="submit"
+              form="prescription-form"
+              [disabled]="submitting() || ownerPets().length === 0"
+            >
               <mat-icon>save</mat-icon>
               <span>{{ editingPrescription() ? 'Guardar receta' : 'Subir receta' }}</span>
             </button>
           </div>
-        </form>
-      </section>
+        </app-entity-modal>
+      }
+
+      @if (viewingPrescription(); as prescription) {
+        <app-entity-modal [title]="prescription.title" description="Datos de la receta digital." (closed)="closePrescriptionModal()">
+          <dl class="view-details">
+            <div>
+              <dt>Titulo</dt>
+              <dd>{{ prescription.title }}</dd>
+            </div>
+            <div>
+              <dt>Medicamento</dt>
+              <dd>{{ prescription.medicationName || 'Receta general' }}</dd>
+            </div>
+            <div>
+              <dt>Fecha</dt>
+              <dd>{{ prescription.issuedOn }}</dd>
+            </div>
+            <div>
+              <dt>Emitida por</dt>
+              <dd>{{ prescription.prescribedBy || 'Sin registrar' }}</dd>
+            </div>
+            <div>
+              <dt>Tipo de archivo</dt>
+              <dd>{{ fileLabel(prescription) }}</dd>
+            </div>
+            <div>
+              <dt>Tamano</dt>
+              <dd>{{ prescription.sizeBytes ? prescription.sizeBytes + ' bytes' : 'Sin registrar' }}</dd>
+            </div>
+          </dl>
+
+          <div class="view-notes">
+            <h3>Notas</h3>
+            <p>{{ prescription.notes || 'Sin notas registradas.' }}</p>
+          </div>
+
+          <div modal-actions>
+            @if (prescription.fileUrl) {
+              <a mat-stroked-button [href]="prescription.fileUrl" target="_blank" rel="noreferrer">
+                <mat-icon>open_in_new</mat-icon>
+                <span>Abrir archivo</span>
+              </a>
+            }
+            <button mat-flat-button class="primary-action" type="button" (click)="closePrescriptionModal()">Cerrar</button>
+          </div>
+        </app-entity-modal>
+      }
 
       <section class="list-section" aria-label="Listado de recetas">
         @if (loadingPrescriptions()) {
@@ -133,15 +196,32 @@
                 }
 
                 <div class="card-actions">
+                  <button
+                    mat-icon-button
+                    class="icon-action"
+                    type="button"
+                    [attr.aria-label]="'Ver datos de ' + prescription.title"
+                    [attr.title]="'Ver datos de ' + prescription.title"
+                    (click)="viewPrescription(prescription)"
+                  >
+                    <mat-icon>visibility</mat-icon>
+                  </button>
                   @if (prescription.fileUrl) {
                     <a mat-stroked-button [href]="prescription.fileUrl" target="_blank" rel="noreferrer">
                       <mat-icon>open_in_new</mat-icon>
                       <span>Ver</span>
                     </a>
                   }
-                  <button mat-stroked-button type="button" [disabled]="submitting()" (click)="editPrescription(prescription)">
+                  <button
+                    mat-icon-button
+                    class="icon-action"
+                    type="button"
+                    [disabled]="submitting()"
+                    [attr.aria-label]="'Editar ' + prescription.title"
+                    [attr.title]="'Editar ' + prescription.title"
+                    (click)="editPrescription(prescription)"
+                  >
                     <mat-icon>edit</mat-icon>
-                    <span>Editar</span>
                   </button>
                   <button mat-button type="button" class="danger-action" [disabled]="submitting()" (click)="deletePrescription(prescription)">
                     <mat-icon>delete_outline</mat-icon>

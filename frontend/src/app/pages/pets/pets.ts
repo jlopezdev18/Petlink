@@ -10,7 +10,10 @@ import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '../../core/auth.service';
 import { Pet, PetFormPayload, PetsApiService } from '../../core/pets-api.service';
+import { EntityModal } from '../../shared/entity-modal/entity-modal';
 import { Sidebar } from '../../shared/sidebar/sidebar';
+
+type PetModalMode = 'create' | 'edit' | 'view' | null;
 
 interface PetFormValue {
   name: string;
@@ -52,6 +55,7 @@ const createDefaultPetFormValue = (): PetFormValue => ({ ...DEFAULT_PET_FORM_VAL
     MatInputModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    EntityModal,
   ],
   templateUrl: './pets.html',
   styleUrl: './pets.css',
@@ -61,7 +65,7 @@ export class Pets implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly petsApiService = inject(PetsApiService);
 
-  protected readonly showForm = signal(false);
+  protected readonly modalMode = signal<PetModalMode>(null);
   protected readonly feedback = signal('');
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
@@ -71,6 +75,7 @@ export class Pets implements OnInit {
   protected readonly loadingPhotoIds = signal<Set<string>>(new Set());
   protected readonly removePhotoRequested = signal(false);
   protected readonly editingPetId = signal<string | null>(null);
+  protected readonly selectedPet = signal<Pet | null>(null);
   protected readonly petPendingDelete = signal<Pet | null>(null);
   protected readonly pets = signal<Pet[]>([]);
   private readonly initialFormSnapshot = signal<PetFormSnapshot>({
@@ -82,7 +87,9 @@ export class Pets implements OnInit {
     const total = this.pets().length;
     return total === 1 ? '1 mascota registrada' : `${total} mascotas registradas`;
   });
-  protected readonly isEditing = computed(() => this.editingPetId() !== null);
+  protected readonly isEditing = computed(() => this.modalMode() === 'edit');
+  protected readonly isPetFormOpen = computed(() => this.modalMode() === 'create' || this.modalMode() === 'edit');
+  protected readonly viewingPet = computed(() => (this.modalMode() === 'view' ? this.selectedPet() : null));
   protected readonly isOwnerMode = computed(() => this.authService.accountType === 'owner');
   protected readonly formTitle = computed(() => (this.isEditing() ? 'Editar mascota' : 'Agregar mascota'));
   protected readonly saveButtonLabel = computed(() =>
@@ -104,32 +111,25 @@ export class Pets implements OnInit {
     void this.loadPets();
   }
 
-  protected toggleForm(): void {
-    if (!this.isOwnerMode()) {
-      return;
-    }
-
-    if (this.showForm()) {
-      this.cancelForm();
-      return;
-    }
-
-    this.openCreateForm();
-  }
-
   protected openCreateForm(): void {
     if (!this.isOwnerMode()) {
       return;
     }
 
     this.feedback.set('');
+    this.selectedPet.set(null);
     this.editingPetId.set(null);
     this.resetForm();
-    this.showForm.set(true);
+    this.modalMode.set('create');
   }
 
   protected cancelForm(): void {
-    this.showForm.set(false);
+    this.closeModal();
+  }
+
+  protected closeModal(): void {
+    this.modalMode.set(null);
+    this.selectedPet.set(null);
     this.editingPetId.set(null);
     this.resetForm();
   }
@@ -140,6 +140,7 @@ export class Pets implements OnInit {
     }
 
     this.feedback.set('');
+    this.selectedPet.set(pet);
     this.editingPetId.set(pet.id);
     this.selectedPhoto.set(null);
     this.removePhotoRequested.set(false);
@@ -150,7 +151,14 @@ export class Pets implements OnInit {
       photoUrl: pet.photoUrl,
     });
     this.photoPreview.set(pet.photoUrl);
-    this.showForm.set(true);
+    this.modalMode.set('edit');
+  }
+
+  protected viewPet(pet: Pet): void {
+    this.feedback.set('');
+    this.selectedPet.set(pet);
+    this.editingPetId.set(null);
+    this.modalMode.set('view');
   }
 
   protected hasNewChanges(): boolean {
@@ -243,8 +251,8 @@ export class Pets implements OnInit {
       this.finishPhotoLoad(pet);
       this.petPendingDelete.set(null);
 
-      if (this.editingPetId() === pet.id) {
-        this.cancelForm();
+      if (this.selectedPet()?.id === pet.id || this.editingPetId() === pet.id) {
+        this.closeModal();
       }
 
       this.feedback.set(`${pet.name} se elimino de Mascotas.`);
@@ -295,9 +303,7 @@ export class Pets implements OnInit {
         this.feedback.set(`${pet.name} se agrego a Mascotas.`);
       }
 
-      this.showForm.set(false);
-      this.editingPetId.set(null);
-      this.resetForm();
+      this.closeModal();
     } catch {
       this.feedback.set('No pudimos guardar la mascota. Revisa los datos e intenta de nuevo.');
     } finally {
