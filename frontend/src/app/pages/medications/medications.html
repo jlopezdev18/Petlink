@@ -137,6 +137,34 @@
             <p>{{ medication.instructions || 'Sin instrucciones registradas.' }}</p>
           </div>
 
+          <section class="administration-history" aria-label="Historial de administraciones">
+            <div class="section-heading">
+              <h3>Administraciones</h3>
+              <span>{{ administrationHistory().length }}</span>
+            </div>
+
+            @if (loadingAdministrationHistory()) {
+              <div class="history-loading">
+                <mat-progress-spinner diameter="30" mode="indeterminate" />
+              </div>
+            } @else {
+              @for (administration of administrationHistory(); track administration.id) {
+                <article class="history-item">
+                  <div>
+                    <p class="history-time">{{ formatDateTime(administration.administeredAt) }}</p>
+                    <p class="history-meta">Programado: {{ formatDateTime(administration.scheduledFor) }}</p>
+                  </div>
+                  <span class="status-pill">{{ statusLabel(administration.status) }}</span>
+                  @if (administration.notes) {
+                    <p class="history-notes">{{ administration.notes }}</p>
+                  }
+                </article>
+              } @empty {
+                <p class="history-empty">Sin administraciones registradas.</p>
+              }
+            }
+          </section>
+
           <div modal-actions>
             <button mat-flat-button class="primary-action" type="button" (click)="closeMedicationModal()">Cerrar</button>
           </div>

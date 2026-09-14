@@ -8,6 +8,8 @@ from app.access import get_medication_manageable_pet, get_medication_viewable_pe
 from app.dependencies import CurrentUserDep, DbSession
 from app.models import Medication, MedicationLog
 from app.schemas.medications import (
+    MedicationAdministrationHistoryResponse,
+    MedicationAdministrationHistoryItem,
     MedicationAdministrationRequest,
     MedicationAdministrationResponse,
     MedicationListResponse,
@@ -122,6 +124,29 @@ def administer_medication(
     )
 
 
+@router.get("/{medication_id}/administrations", response_model=MedicationAdministrationHistoryResponse)
+def list_medication_administrations(
+    medication_id: UUID,
+    current_user: CurrentUserDep,
+    db: DbSession,
+) -> MedicationAdministrationHistoryResponse:
+    medication = get_medication_or_404(db, medication_id)
+    get_medication_viewable_pet(db, current_user.id, medication.pet_id)
+    medication_logs = db.scalars(
+        select(MedicationLog)
+        .where(MedicationLog.medication_id == medication.id)
+        .order_by(
+            MedicationLog.administered_at.desc().nullslast(),
+            MedicationLog.scheduled_for.desc(),
+            MedicationLog.created_at.desc(),
+        )
+    ).all()
+
+    return MedicationAdministrationHistoryResponse(
+        administrations=[serialize_medication_log(medication_log) for medication_log in medication_logs],
+    )
+
+
 @router.delete("/{medication_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_medication(
     medication_id: UUID,
@@ -163,6 +188,18 @@ def serialize_medication(medication: Medication) -> MedicationResponse:
         prescribingVet=medication.prescribing_vet or "",
         instructions=medication.instructions or "",
         isActive=medication.is_active,
+    )
+
+
+def serialize_medication_log(medication_log: MedicationLog) -> MedicationAdministrationHistoryItem:
+    return MedicationAdministrationHistoryItem(
+        id=medication_log.id,
+        medicationId=medication_log.medication_id,
+        scheduledFor=medication_log.scheduled_for,
+        administeredAt=medication_log.administered_at,
+        status=medication_log.status,
+        notes=medication_log.notes or "",
+        createdAt=medication_log.created_at,
     )
 
 
