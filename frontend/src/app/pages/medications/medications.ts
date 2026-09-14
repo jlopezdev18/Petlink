@@ -8,7 +8,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { firstValueFrom } from 'rxjs';
 
-import { Medication, MedicationsApiService } from '../../core/medications-api.service';
+import {
+  Medication,
+  MedicationAdministrationHistory,
+  MedicationsApiService,
+} from '../../core/medications-api.service';
 import { Pet, PetsApiService } from '../../core/pets-api.service';
 import { EntityModal } from '../../shared/entity-modal/entity-modal';
 import { Sidebar } from '../../shared/sidebar/sidebar';
@@ -38,11 +42,13 @@ export class MedicationsPage implements OnInit {
 
   protected readonly loading = signal(true);
   protected readonly loadingMedications = signal(false);
+  protected readonly loadingAdministrationHistory = signal(false);
   protected readonly submitting = signal(false);
   protected readonly feedback = signal('');
   protected readonly pets = signal<Pet[]>([]);
   protected readonly selectedPetId = signal('');
   protected readonly medications = signal<Medication[]>([]);
+  protected readonly administrationHistory = signal<MedicationAdministrationHistory[]>([]);
   protected readonly modalMode = signal<MedicationModalMode>(null);
   protected readonly selectedMedication = signal<Medication | null>(null);
   protected readonly medicationPendingDelete = signal<Medication | null>(null);
@@ -123,6 +129,8 @@ export class MedicationsPage implements OnInit {
   protected closeMedicationModal(): void {
     this.modalMode.set(null);
     this.selectedMedication.set(null);
+    this.administrationHistory.set([]);
+    this.loadingAdministrationHistory.set(false);
     this.resetForm();
   }
 
@@ -130,6 +138,7 @@ export class MedicationsPage implements OnInit {
     this.feedback.set('');
     this.selectedMedication.set(medication);
     this.modalMode.set('view');
+    void this.loadAdministrationHistory(medication.id);
   }
 
   protected async submit(): Promise<void> {
@@ -225,6 +234,9 @@ export class MedicationsPage implements OnInit {
     try {
       await firstValueFrom(this.medicationsApiService.administerMedication(medication.id));
       this.administeredMedicationIds.update((medicationIds) => new Set(medicationIds).add(medication.id));
+      if (this.viewingMedication()?.id === medication.id) {
+        await this.loadAdministrationHistory(medication.id);
+      }
       this.feedback.set(`${medication.name} marcado como administrado.`);
     } catch {
       this.feedback.set('No pudimos registrar la administracion.');
@@ -235,6 +247,28 @@ export class MedicationsPage implements OnInit {
 
   protected isAdministered(medication: Medication): boolean {
     return this.administeredMedicationIds().has(medication.id);
+  }
+
+  protected formatDateTime(value: string | null): string {
+    if (!value) {
+      return 'Sin registrar';
+    }
+
+    return new Intl.DateTimeFormat('es-HN', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(value));
+  }
+
+  protected statusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      given: 'Administrado',
+      missed: 'Perdido',
+      scheduled: 'Programado',
+      skipped: 'Omitido',
+    };
+
+    return labels[status] ?? status;
   }
 
   protected requestDeleteMedication(medication: Medication): void {
@@ -311,11 +345,33 @@ export class MedicationsPage implements OnInit {
       const medications = await firstValueFrom(this.medicationsApiService.listMedications(this.selectedPetId()));
       this.medications.set(medications);
       this.administeredMedicationIds.set(new Set<string>());
+      this.administrationHistory.set([]);
     } catch {
       this.medications.set([]);
       this.feedback.set('No pudimos cargar medicamentos para esta mascota.');
     } finally {
       this.loadingMedications.set(false);
+    }
+  }
+
+  private async loadAdministrationHistory(medicationId: string): Promise<void> {
+    this.loadingAdministrationHistory.set(true);
+    this.administrationHistory.set([]);
+
+    try {
+      const administrations = await firstValueFrom(
+        this.medicationsApiService.listMedicationAdministrations(medicationId),
+      );
+
+      if (this.selectedMedication()?.id === medicationId) {
+        this.administrationHistory.set(administrations);
+      }
+    } catch {
+      this.feedback.set('No pudimos cargar el historial de administraciones.');
+    } finally {
+      if (this.selectedMedication()?.id === medicationId) {
+        this.loadingAdministrationHistory.set(false);
+      }
     }
   }
 

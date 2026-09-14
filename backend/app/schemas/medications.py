@@ -59,3 +59,17 @@ class MedicationAdministrationResponse(BaseModel):
     administeredAt: datetime
     status: str
     notes: str
+
+
+class MedicationAdministrationHistoryItem(BaseModel):
+    id: UUID
+    medicationId: UUID
+    scheduledFor: datetime
+    administeredAt: datetime | None
+    status: str
+    notes: str
+    createdAt: datetime
+
+
+class MedicationAdministrationHistoryResponse(BaseModel):
+    administrations: list[MedicationAdministrationHistoryItem]
