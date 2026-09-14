@@ -18,13 +18,13 @@ class SupabaseAuthClient:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
 
-    def sign_up(self, email: str, password: str, full_name: str) -> dict[str, Any]:
+    def sign_up(self, email: str, password: str, full_name: str, account_type: str) -> dict[str, Any]:
         return self._post(
             "/auth/v1/signup",
             {
                 "email": email,
                 "password": password,
-                "data": {"full_name": full_name},
+                "data": {"full_name": full_name, "account_type": account_type},
             },
         )
 

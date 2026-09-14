@@ -40,11 +40,13 @@ export class MedicationsPage implements OnInit {
   protected readonly selectedPetId = signal('');
   protected readonly medications = signal<Medication[]>([]);
   protected readonly editingMedication = signal<Medication | null>(null);
+  protected readonly administeredMedicationIds = signal<Set<string>>(new Set<string>());
 
   protected readonly selectedPet = computed(() =>
     this.pets().find((pet) => pet.id === this.selectedPetId()) ?? null,
   );
   protected readonly canManageSelectedPet = computed(() => this.selectedPet()?.canManageMedications ?? false);
+  protected readonly canAdministerSelectedPet = computed(() => Boolean(this.selectedPet()) && !this.canManageSelectedPet());
 
   protected readonly form = this.formBuilder.nonNullable.group({
     name: ['', Validators.required],
@@ -167,6 +169,29 @@ export class MedicationsPage implements OnInit {
     }
   }
 
+  protected async administerMedication(medication: Medication): Promise<void> {
+    if (this.submitting() || !this.canAdministerSelectedPet()) {
+      return;
+    }
+
+    this.submitting.set(true);
+    this.feedback.set('');
+
+    try {
+      await firstValueFrom(this.medicationsApiService.administerMedication(medication.id));
+      this.administeredMedicationIds.update((medicationIds) => new Set(medicationIds).add(medication.id));
+      this.feedback.set(`${medication.name} marcado como administrado.`);
+    } catch {
+      this.feedback.set('No pudimos registrar la administracion.');
+    } finally {
+      this.submitting.set(false);
+    }
+  }
+
+  protected isAdministered(medication: Medication): boolean {
+    return this.administeredMedicationIds().has(medication.id);
+  }
+
   private async loadPets(): Promise<void> {
     this.loading.set(true);
 
@@ -196,6 +221,7 @@ export class MedicationsPage implements OnInit {
     try {
       const medications = await firstValueFrom(this.medicationsApiService.listMedications(this.selectedPetId()));
       this.medications.set(medications);
+      this.administeredMedicationIds.set(new Set<string>());
     } catch {
       this.medications.set([]);
       this.feedback.set('No pudimos cargar medicamentos para esta mascota.');

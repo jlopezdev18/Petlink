@@ -21,11 +21,13 @@ def register_user(
     request: RegisterRequest,
     auth_client: Annotated[SupabaseAuthClient, Depends(get_auth_client)],
 ) -> AuthResponse:
+    account_type = clean_account_type(request.account_type)
     try:
         data = auth_client.sign_up(
             email=request.email,
             password=request.password,
             full_name=request.full_name,
+            account_type=account_type,
         )
     except SupabaseAuthError as error:
         raise HTTPException(status_code=error.status_code, detail=error.message) from error
@@ -52,3 +54,10 @@ def login_user(
         raise HTTPException(status_code=status_code, detail=error.message) from error
 
     return AuthResponse(message="User logged in successfully.", data=data)
+
+
+def clean_account_type(value: str) -> str:
+    cleaned = value.strip().lower()
+    if cleaned not in {"owner", "caregiver"}:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid account type.")
+    return cleaned

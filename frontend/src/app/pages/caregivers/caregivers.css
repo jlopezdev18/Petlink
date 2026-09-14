@@ -107,10 +107,24 @@ h1 {
   font-weight: 800;
 }
 
+.panel-heading {
+  margin-bottom: 18px;
+}
+
+.panel-heading p {
+  margin: -10px 0 0;
+  color: var(--petlink-muted);
+  font-size: 13px;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px 16px;
+}
+
+.compact-grid {
+  grid-template-columns: minmax(0, 1fr) 180px 220px;
 }
 
 mat-form-field {
@@ -177,6 +191,77 @@ mat-form-field {
   margin: 0 0 14px;
 }
 
+.card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.status-pill {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--petlink-teal) 16%, transparent);
+  color: var(--petlink-teal);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.inactive-pill {
+  background: color-mix(in srgb, var(--petlink-muted) 16%, transparent);
+  color: var(--petlink-muted);
+}
+
+.code-reveal {
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid var(--petlink-line);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--petlink-nav-hover-bg);
+}
+
+.code-reveal span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--petlink-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.code-reveal strong {
+  display: block;
+  color: var(--petlink-ink);
+  font-size: 22px;
+  letter-spacing: 0;
+}
+
+.guest-link {
+  margin-top: 6px;
+  display: inline-block;
+  color: var(--petlink-purple);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.guest-link:hover {
+  text-decoration: underline;
+}
+
+.qr-code {
+  width: 112px;
+  height: 112px;
+  border: 1px solid var(--petlink-line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
 .item-card dt {
   color: var(--petlink-subtle);
   font-size: 11px;
@@ -233,7 +318,13 @@ mat-form-field {
   }
 
   .form-grid,
+  .compact-grid,
   .item-grid {
     grid-template-columns: 1fr;
+  }
+
+  .code-reveal {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

@@ -8,6 +8,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { firstValueFrom } from 'rxjs';
 
+import { AuthService } from '../../core/auth.service';
 import { Pet, PetFormPayload, PetsApiService } from '../../core/pets-api.service';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 
@@ -57,6 +58,7 @@ const createDefaultPetFormValue = (): PetFormValue => ({ ...DEFAULT_PET_FORM_VAL
 })
 export class Pets implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
   private readonly petsApiService = inject(PetsApiService);
 
   protected readonly showForm = signal(false);
@@ -81,6 +83,7 @@ export class Pets implements OnInit {
     return total === 1 ? '1 mascota registrada' : `${total} mascotas registradas`;
   });
   protected readonly isEditing = computed(() => this.editingPetId() !== null);
+  protected readonly isOwnerMode = computed(() => this.authService.accountType === 'owner');
   protected readonly formTitle = computed(() => (this.isEditing() ? 'Editar mascota' : 'Agregar mascota'));
   protected readonly saveButtonLabel = computed(() =>
     this.isEditing() ? 'Guardar cambios' : 'Guardar mascota',
@@ -102,6 +105,10 @@ export class Pets implements OnInit {
   }
 
   protected toggleForm(): void {
+    if (!this.isOwnerMode()) {
+      return;
+    }
+
     if (this.showForm()) {
       this.cancelForm();
       return;
@@ -111,6 +118,10 @@ export class Pets implements OnInit {
   }
 
   protected openCreateForm(): void {
+    if (!this.isOwnerMode()) {
+      return;
+    }
+
     this.feedback.set('');
     this.editingPetId.set(null);
     this.resetForm();
@@ -124,6 +135,10 @@ export class Pets implements OnInit {
   }
 
   protected editPet(pet: Pet): void {
+    if (!this.isOwnerMode() || !pet.canUpdatePet) {
+      return;
+    }
+
     this.feedback.set('');
     this.editingPetId.set(pet.id);
     this.selectedPhoto.set(null);
@@ -188,6 +203,10 @@ export class Pets implements OnInit {
   }
 
   protected requestDelete(pet: Pet): void {
+    if (!this.isOwnerMode() || !pet.isOwner) {
+      return;
+    }
+
     this.petPendingDelete.set(pet);
   }
 
@@ -240,7 +259,7 @@ export class Pets implements OnInit {
     this.feedback.set('');
     this.form.markAllAsTouched();
 
-    if (this.form.invalid || this.submitting() || !this.hasNewChanges()) {
+    if (this.form.invalid || this.submitting() || !this.hasNewChanges() || !this.isOwnerMode()) {
       return;
     }
 

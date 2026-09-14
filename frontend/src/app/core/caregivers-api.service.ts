@@ -30,11 +30,28 @@ export interface CaregiverPayload {
   notes: string;
 }
 
+export interface AccessCode {
+  id: string;
+  petId: string;
+  petName: string;
+  purpose: 'caregiver' | 'veterinarian';
+  expiresAt: string;
+  revokedAt: string | null;
+  lastUsedAt: string | null;
+  createdAt: string;
+  isActive: boolean;
+}
+
+export interface CreatedAccessCode extends AccessCode {
+  code: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CaregiversApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/caregivers`;
   private caregiversRequest$?: Observable<CaregiverAccess[]>;
+  private accessCodesRequest$?: Observable<AccessCode[]>;
 
   listCaregivers(): Observable<CaregiverAccess[]> {
     this.caregiversRequest$ ??= this.http.get<CaregiverAccess[]>(this.baseUrl).pipe(
@@ -60,7 +77,36 @@ export class CaregiversApiService {
     return this.http.delete<void>(`${this.baseUrl}/${caregiverId}`).pipe(tap(() => this.clearCache()));
   }
 
+  listAccessCodes(): Observable<AccessCode[]> {
+    this.accessCodesRequest$ ??= this.http.get<AccessCode[]>(`${this.baseUrl}/access-codes`).pipe(
+      shareReplay({ bufferSize: 1, refCount: false }),
+      catchError((error: unknown) => {
+        this.accessCodesRequest$ = undefined;
+        return throwError(() => error);
+      }),
+    );
+
+    return this.accessCodesRequest$;
+  }
+
+  createAccessCode(petId: string, expiresAt: string, purpose: AccessCode['purpose']): Observable<CreatedAccessCode> {
+    return this.http
+      .post<CreatedAccessCode>(`${this.baseUrl}/access-codes`, { petId, expiresAt, purpose })
+      .pipe(tap(() => this.clearAccessCodeCache()));
+  }
+
+  revokeAccessCode(accessCodeId: string): Observable<void> {
+    return this.http
+      .delete<void>(`${this.baseUrl}/access-codes/${accessCodeId}`)
+      .pipe(tap(() => this.clearAccessCodeCache()));
+  }
+
   clearCache(): void {
     this.caregiversRequest$ = undefined;
+    this.clearAccessCodeCache();
+  }
+
+  private clearAccessCodeCache(): void {
+    this.accessCodesRequest$ = undefined;
   }
 }

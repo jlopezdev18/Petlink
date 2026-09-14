@@ -31,6 +31,7 @@ export class AuthService {
   private readonly profileApiService = inject(ProfileApiService);
   private readonly tokenKey = 'petlink_access_token';
   private readonly refreshTokenKey = 'petlink_refresh_token';
+  private readonly accountTypeKey = 'petlink_account_type';
 
   readonly isAuthenticated = signal(Boolean(this.accessToken));
 
@@ -38,30 +39,36 @@ export class AuthService {
     return localStorage.getItem(this.tokenKey);
   }
 
-  login(email: string, password: string): Observable<AuthResponse> {
-    return this.http
-      .post<AuthResponse>(`${environment.apiUrl}/auth/login`, { email, password })
-      .pipe(tap((response) => this.storeSession(response)));
+  get accountType(): string {
+    return localStorage.getItem(this.accountTypeKey) ?? 'owner';
   }
 
-  register(fullName: string, email: string, password: string): Observable<AuthResponse> {
+  login(email: string, password: string, accountType: string): Observable<AuthResponse> {
+    return this.http
+      .post<AuthResponse>(`${environment.apiUrl}/auth/login`, { email, password, account_type: accountType })
+      .pipe(tap((response) => this.storeSession(response, accountType)));
+  }
+
+  register(fullName: string, email: string, password: string, accountType: string): Observable<AuthResponse> {
     return this.http
       .post<AuthResponse>(`${environment.apiUrl}/auth/register`, {
         full_name: fullName,
         email,
         password,
+        account_type: accountType,
       })
-      .pipe(tap((response) => this.storeSession(response)));
+      .pipe(tap((response) => this.storeSession(response, accountType)));
   }
 
   logout(): void {
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.refreshTokenKey);
+    localStorage.removeItem(this.accountTypeKey);
     this.clearApiCaches();
     this.isAuthenticated.set(false);
   }
 
-  private storeSession(response: AuthResponse): void {
+  private storeSession(response: AuthResponse, accountType: string): void {
     this.clearApiCaches();
 
     const accessToken = response.data.access_token ?? response.data.session?.access_token;
@@ -69,6 +76,7 @@ export class AuthService {
 
     if (accessToken) {
       localStorage.setItem(this.tokenKey, accessToken);
+      localStorage.setItem(this.accountTypeKey, accountType);
       this.isAuthenticated.set(true);
     }
 

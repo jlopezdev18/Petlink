@@ -5,6 +5,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatRadioModule } from '@angular/material/radio';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
@@ -21,6 +22,7 @@ import { AuthLayout } from '../../layouts/auth-layout/auth-layout';
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatRadioModule,
     RouterLink,
   ],
   templateUrl: './login.html',
@@ -37,6 +39,7 @@ export class LoginPage {
   protected readonly form = this.formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
+    accountType: ['owner'],
     remember: [false],
   });
 
@@ -52,8 +55,8 @@ export class LoginPage {
 
     try {
       const credentials = this.form.getRawValue();
-      await firstValueFrom(this.authService.login(credentials.email, credentials.password));
-      await this.router.navigate(['/inicio']);
+      await firstValueFrom(this.authService.login(credentials.email, credentials.password, credentials.accountType));
+      await this.router.navigate([credentials.accountType === 'caregiver' ? '/medicamentos' : '/inicio']);
     } catch {
       this.feedback.set('No pudimos iniciar sesion. Revisa tu correo y contrasena.');
     } finally {

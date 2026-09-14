@@ -6,6 +6,7 @@ from starlette.requests import Request
 
 from app.api.auth import router as auth_router
 from app.api.caregivers import router as caregivers_router
+from app.api.guest_access import router as guest_access_router
 from app.api.medications import router as medications_router
 from app.api.pets import router as pets_router
 from app.api.prescriptions import router as prescriptions_router
@@ -31,6 +32,7 @@ app.include_router(auth_router)
 app.include_router(profiles_router)
 app.include_router(pets_router)
 app.include_router(caregivers_router)
+app.include_router(guest_access_router)
 app.include_router(medications_router)
 app.include_router(prescriptions_router)
 

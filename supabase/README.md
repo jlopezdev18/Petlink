@@ -7,6 +7,7 @@ This folder contains the first database schema for PetLink.
 - `profiles`: app profile for each Supabase Auth user.
 - `pets`: pets owned by a user.
 - `pet_caregivers`: authorized caregiver access for a pet.
+- `pet_access_codes`: temporary guest access codes for caregivers who do not register.
 - `medications`: active or historical medications for a pet.
 - `prescriptions`: owner-only digital prescriptions uploaded as PDF or image.
 - `medication_logs`: scheduled/given/skipped medication events.
@@ -21,8 +22,11 @@ Supabase Auth owns login and passwords in `auth.users`.
 Every pet has one owner in `pets.owner_id`.
 
 Profiles store the user's email copied from Supabase Auth so the app can find registered caregivers by exact email.
+Profiles also store `account_type` as `owner` or `caregiver` to tailor the login and registration experience. This does not limit caregiver authorization: any registered profile can still be authorized as a caregiver by email.
 
 Owners can authorize caregivers in `pet_caregivers`. A caregiver must also have a row in `profiles`, so they must already be a registered Supabase Auth user.
+
+Owners can also create temporary guest codes in `pet_access_codes`. Codes are stored as hashes, can be revoked, and expire at the owner-selected time. Guest code access is intentionally narrower than registered caregiver access: guests can view the authorized pet and active medications, then mark a medication as given through the backend API.
 
 Caregiver permissions are stored per pet:
 

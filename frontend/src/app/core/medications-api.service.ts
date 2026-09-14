@@ -29,6 +29,14 @@ export interface MedicationPayload {
   isActive: boolean;
 }
 
+export interface MedicationAdministration {
+  id: string;
+  medicationId: string;
+  administeredAt: string;
+  status: string;
+  notes: string;
+}
+
 interface MedicationListResponse {
   medications: Medication[];
 }
@@ -70,6 +78,10 @@ export class MedicationsApiService {
     return this.http
       .put<Medication>(`${this.baseUrl}/${medicationId}`, payload)
       .pipe(tap(() => this.clearCache(payload.petId)));
+  }
+
+  administerMedication(medicationId: string, notes = ''): Observable<MedicationAdministration> {
+    return this.http.post<MedicationAdministration>(`${this.baseUrl}/${medicationId}/administer`, { notes });
   }
 
   clearCache(petId?: string): void {

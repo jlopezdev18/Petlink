@@ -37,16 +37,18 @@
   </div>
 
   <nav class="sidebar-nav" aria-label="Menú principal">
-    <a
-      class="nav-item"
-      routerLink="/inicio"
-      routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: true }"
-      (click)="closeMobileMenu()"
-    >
-      <mat-icon>home</mat-icon>
-      <span>Inicio</span>
-    </a>
+    @if (!isCaregiverMode()) {
+      <a
+        class="nav-item"
+        routerLink="/inicio"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        (click)="closeMobileMenu()"
+      >
+        <mat-icon>home</mat-icon>
+        <span>Inicio</span>
+      </a>
+    }
     <a
       class="nav-item"
       routerLink="/mascotas"
@@ -74,15 +76,17 @@
       <mat-icon>medication</mat-icon>
       <span>Medicamentos</span>
     </a>
-    <a
-      class="nav-item"
-      routerLink="/recetas"
-      routerLinkActive="active"
-      (click)="closeMobileMenu()"
-    >
-      <mat-icon>description</mat-icon>
-      <span>Recetas</span>
-    </a>
+    @if (!isCaregiverMode()) {
+      <a
+        class="nav-item"
+        routerLink="/recetas"
+        routerLinkActive="active"
+        (click)="closeMobileMenu()"
+      >
+        <mat-icon>description</mat-icon>
+        <span>Recetas</span>
+      </a>
+    }
     <a
       class="nav-item"
       routerLink="/perfil"
