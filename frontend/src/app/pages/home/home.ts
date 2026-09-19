@@ -19,6 +19,7 @@ export class HomePage implements OnInit {
 
   protected readonly loading = signal(true);
   protected readonly profile = signal<Profile | null>(null);
+  protected readonly accessUpdated = signal(Boolean(window.history.state?.accessUpdated));
 
   protected readonly firstName = computed(() => {
     const fullName = this.profile()?.fullName.trim();

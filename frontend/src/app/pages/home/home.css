@@ -14,8 +14,16 @@
     var(--petlink-paw-pattern),
     linear-gradient(135deg, var(--petlink-dashboard-teal-glow), transparent 32%),
     linear-gradient(315deg, var(--petlink-dashboard-purple-glow), transparent 38%),
-    repeating-linear-gradient(90deg, var(--petlink-dashboard-grid-line-x) 0 1px, transparent 1px 78px),
-    repeating-linear-gradient(0deg, var(--petlink-dashboard-grid-line-y) 0 1px, transparent 1px 78px);
+    repeating-linear-gradient(
+      90deg,
+      var(--petlink-dashboard-grid-line-x) 0 1px,
+      transparent 1px 78px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      var(--petlink-dashboard-grid-line-y) 0 1px,
+      transparent 1px 78px
+    );
 }
 
 .dashboard-content {
@@ -24,10 +32,24 @@
 }
 
 .welcome-panel,
-.home-grid {
+.home-grid,
+.access-feedback {
   max-width: 1180px;
   margin-right: auto;
   margin-left: auto;
+}
+
+.access-feedback {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-left: 4px solid var(--petlink-teal);
+  background: var(--petlink-feedback-bg);
+  color: var(--petlink-feedback-text);
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .welcome-panel {

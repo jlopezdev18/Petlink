@@ -59,12 +59,21 @@ export class PetsApiService {
     return this.petsRequest$;
   }
 
+  refreshPets(): Observable<Pet[]> {
+    this.clearCache();
+    return this.listPets();
+  }
+
   createPet(payload: PetFormPayload): Observable<Pet> {
-    return this.http.post<Pet>(this.baseUrl, this.toFormData(payload)).pipe(tap(() => this.clearCache()));
+    return this.http
+      .post<Pet>(this.baseUrl, this.toFormData(payload))
+      .pipe(tap(() => this.clearCache()));
   }
 
   updatePet(petId: string, payload: PetFormPayload): Observable<Pet> {
-    return this.http.put<Pet>(`${this.baseUrl}/${petId}`, this.toFormData(payload)).pipe(tap(() => this.clearCache()));
+    return this.http
+      .put<Pet>(`${this.baseUrl}/${petId}`, this.toFormData(payload))
+      .pipe(tap(() => this.clearCache()));
   }
 
   deletePet(petId: string): Observable<void> {

@@ -2,6 +2,13 @@
   <app-sidebar />
 
   <main class="dashboard-content" aria-label="Inicio">
+    @if (accessUpdated()) {
+      <p class="access-feedback" role="status">
+        <mat-icon>policy</mat-icon>
+        El propietario actualizo o revoco uno de tus accesos.
+      </p>
+    }
+
     <section class="welcome-panel" aria-labelledby="home-title">
       <div>
         <p class="eyebrow">PetLink</p>
@@ -35,7 +42,6 @@
         <h2>Cuidado centralizado</h2>
         <p>Consulta y actualiza la informacion importante desde un solo lugar.</p>
       </article>
-
     </section>
   </main>
 </div>
