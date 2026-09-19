@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 import { MedicationNotificationsService } from './core/medication-notifications.service';
+import { PetAccessSyncService } from './core/pet-access-sync.service';
 
 @Component({
   selector: 'app-root',
@@ -11,8 +12,10 @@ import { MedicationNotificationsService } from './core/medication-notifications.
 })
 export class App implements OnInit {
   private readonly medicationNotificationsService = inject(MedicationNotificationsService);
+  private readonly petAccessSyncService = inject(PetAccessSyncService);
 
   ngOnInit(): void {
     this.medicationNotificationsService.start();
+    this.petAccessSyncService.start();
   }
 }

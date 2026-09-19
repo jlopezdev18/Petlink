@@ -65,16 +65,30 @@ export class CaregiversApiService {
     return this.caregiversRequest$;
   }
 
-  createCaregiver(payload: CaregiverPayload): Observable<CaregiverAccess> {
-    return this.http.post<CaregiverAccess>(this.baseUrl, payload).pipe(tap(() => this.clearCache()));
+  refreshCaregivers(): Observable<CaregiverAccess[]> {
+    this.caregiversRequest$ = undefined;
+    return this.listCaregivers();
   }
 
-  updateCaregiver(caregiverId: string, payload: Pick<CaregiverPayload, 'preset' | 'notes'>): Observable<CaregiverAccess> {
-    return this.http.put<CaregiverAccess>(`${this.baseUrl}/${caregiverId}`, payload).pipe(tap(() => this.clearCache()));
+  createCaregiver(payload: CaregiverPayload): Observable<CaregiverAccess> {
+    return this.http
+      .post<CaregiverAccess>(this.baseUrl, payload)
+      .pipe(tap(() => this.clearCache()));
+  }
+
+  updateCaregiver(
+    caregiverId: string,
+    payload: Pick<CaregiverPayload, 'preset' | 'notes'>,
+  ): Observable<CaregiverAccess> {
+    return this.http
+      .put<CaregiverAccess>(`${this.baseUrl}/${caregiverId}`, payload)
+      .pipe(tap(() => this.clearCache()));
   }
 
   deleteCaregiver(caregiverId: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${caregiverId}`).pipe(tap(() => this.clearCache()));
+    return this.http
+      .delete<void>(`${this.baseUrl}/${caregiverId}`)
+      .pipe(tap(() => this.clearCache()));
   }
 
   listAccessCodes(): Observable<AccessCode[]> {
@@ -89,7 +103,11 @@ export class CaregiversApiService {
     return this.accessCodesRequest$;
   }
 
-  createAccessCode(petId: string, expiresAt: string, purpose: AccessCode['purpose']): Observable<CreatedAccessCode> {
+  createAccessCode(
+    petId: string,
+    expiresAt: string,
+    purpose: AccessCode['purpose'],
+  ): Observable<CreatedAccessCode> {
     return this.http
       .post<CreatedAccessCode>(`${this.baseUrl}/access-codes`, { petId, expiresAt, purpose })
       .pipe(tap(() => this.clearAccessCodeCache()));
