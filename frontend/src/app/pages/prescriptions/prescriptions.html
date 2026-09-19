@@ -174,6 +174,12 @@
               <article class="item-card">
                 <div class="card-heading">
                   <div>
+                    @if (selectedPet(); as pet) {
+                      <span class="pet-ownership-badge">
+                        <mat-icon aria-hidden="true">home</mat-icon>
+                        {{ pet.name }} - Mascota propia
+                      </span>
+                    }
                     <h2>{{ prescription.title }}</h2>
                     <p>{{ prescription.medicationName || 'Receta general' }}</p>
                   </div>

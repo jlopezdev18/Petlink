@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import or_, select
+from sqlalchemy.orm import joinedload
 
 from app.access import get_owned_pet_or_404, get_updatable_pet, has_pet_permission
 from app.api.profiles import get_or_create_profile
@@ -38,6 +39,7 @@ def list_pets(current_user: CurrentUserDep, db: DbSession) -> PetListResponse:
     )
     pets = db.scalars(
         select(Pet)
+        .options(joinedload(Pet.owner))
         .outerjoin(
             PetCaregiver,
             (PetCaregiver.pet_id == Pet.id)
@@ -151,6 +153,7 @@ def serialize_pet(db: DbSession, pet: Pet, user_id: UUID, account_type: str = "o
     return PetResponse(
         id=pet.id,
         ownerId=pet.owner_id,
+        ownerName=pet.owner.full_name,
         name=pet.name,
         species=SPECIES_TO_UI.get(pet.species, "Otro"),
         breed=pet.breed or "",

@@ -10,18 +10,47 @@
       </div>
 
       <div class="header-actions">
+        @if (notificationPermission() === 'default') {
+          <button
+            mat-button
+            class="notification-action"
+            type="button"
+            (click)="enableNotifications()"
+          >
+            <mat-icon>notifications_active</mat-icon>
+            <span>Activar avisos</span>
+          </button>
+        } @else if (notificationPermission() === 'granted') {
+          <span class="notification-status" role="status">
+            <mat-icon>notifications</mat-icon>
+            Avisos activos
+          </span>
+        } @else if (notificationPermission() === 'denied') {
+          <span class="notification-status notification-denied" role="status">
+            <mat-icon>notifications_off</mat-icon>
+            Avisos bloqueados
+          </span>
+        }
+
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Mascota</mat-label>
           <mat-icon matPrefix>pets</mat-icon>
           <mat-select [value]="selectedPetId()" (selectionChange)="changePet($event.value)">
             @for (pet of pets(); track pet.id) {
-              <mat-option [value]="pet.id">{{ pet.name }}</mat-option>
+              <mat-option [value]="pet.id">
+                {{ pet.name }} - {{ pet.isOwner ? 'Propia' : 'Asignada por ' + pet.ownerName }}
+              </mat-option>
             }
           </mat-select>
         </mat-form-field>
 
         @if (canManageSelectedPet()) {
-          <button mat-flat-button class="primary-action" type="button" (click)="openCreateMedication()">
+          <button
+            mat-flat-button
+            class="primary-action"
+            type="button"
+            (click)="openCreateMedication()"
+          >
             <mat-icon>add</mat-icon>
             <span>Agregar medicamento</span>
           </button>
@@ -60,13 +89,23 @@
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
                 <mat-label>Frecuencia</mat-label>
                 <mat-icon matPrefix>schedule</mat-icon>
-                <input matInput type="text" formControlName="frequency" placeholder="Ej. Cada 12 horas" />
+                <input
+                  matInput
+                  type="text"
+                  formControlName="frequency"
+                  placeholder="Ej. Cada 12 horas"
+                />
               </mat-form-field>
 
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
                 <mat-label>Veterinario</mat-label>
                 <mat-icon matPrefix>badge</mat-icon>
-                <input matInput type="text" formControlName="prescribingVet" placeholder="Opcional" />
+                <input
+                  matInput
+                  type="text"
+                  formControlName="prescribingVet"
+                  placeholder="Opcional"
+                />
               </mat-form-field>
 
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
@@ -81,6 +120,35 @@
                 <input matInput type="date" formControlName="endDate" />
               </mat-form-field>
 
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Intervalo entre dosis</mat-label>
+                <mat-icon matPrefix>repeat</mat-icon>
+                <input
+                  matInput
+                  type="number"
+                  min="1"
+                  max="8760"
+                  step="1"
+                  formControlName="doseIntervalHours"
+                />
+                <span matTextSuffix>horas</span>
+                @if (form.controls.doseIntervalHours.hasError('min')) {
+                  <mat-error>El intervalo minimo es 1 hora.</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Proxima dosis</mat-label>
+                <mat-icon matPrefix>alarm</mat-icon>
+                <input matInput type="datetime-local" formControlName="nextDoseAt" />
+              </mat-form-field>
+
+              @if (form.hasError('scheduleIncomplete') && form.touched) {
+                <p class="schedule-error">
+                  Completa el intervalo y la proxima dosis, o deja ambos campos vacios.
+                </p>
+              }
+
               <mat-form-field class="wide-field" appearance="outline" subscriptSizing="dynamic">
                 <mat-label>Instrucciones</mat-label>
                 <mat-icon matPrefix>edit_note</mat-icon>
@@ -90,8 +158,16 @@
           </form>
 
           <div modal-actions>
-            <button mat-button type="button" [disabled]="submitting()" (click)="cancelEdit()">Cancelar</button>
-            <button mat-flat-button class="primary-action" type="submit" form="medication-form" [disabled]="submitting()">
+            <button mat-button type="button" [disabled]="submitting()" (click)="cancelEdit()">
+              Cancelar
+            </button>
+            <button
+              mat-flat-button
+              class="primary-action"
+              type="submit"
+              form="medication-form"
+              [disabled]="submitting()"
+            >
               <mat-icon>save</mat-icon>
               <span>{{ editingMedication() ? 'Guardar cambios' : 'Guardar medicamento' }}</span>
             </button>
@@ -100,7 +176,11 @@
       }
 
       @if (viewingMedication(); as medication) {
-        <app-entity-modal [title]="medication.name" description="Datos del tratamiento." (closed)="closeMedicationModal()">
+        <app-entity-modal
+          [title]="medication.name"
+          description="Datos del tratamiento."
+          (closed)="closeMedicationModal()"
+        >
           <dl class="view-details">
             <div>
               <dt>Nombre</dt>
@@ -130,6 +210,24 @@
               <dt>Veterinario</dt>
               <dd>{{ medication.prescribingVet || 'Sin registrar' }}</dd>
             </div>
+            <div>
+              <dt>Intervalo</dt>
+              <dd>
+                {{
+                  medication.doseIntervalHours
+                    ? medication.doseIntervalHours + ' horas'
+                    : 'Sin programar'
+                }}
+              </dd>
+            </div>
+            <div>
+              <dt>Proxima dosis</dt>
+              <dd [class.dose-due-text]="isDoseDue(medication)">
+                {{
+                  medication.nextDoseAt ? formatDateTime(medication.nextDoseAt) : 'Sin programar'
+                }}
+              </dd>
+            </div>
           </dl>
 
           <div class="view-notes">
@@ -152,7 +250,9 @@
                 <article class="history-item">
                   <div>
                     <p class="history-time">{{ formatDateTime(administration.administeredAt) }}</p>
-                    <p class="history-meta">Programado: {{ formatDateTime(administration.scheduledFor) }}</p>
+                    <p class="history-meta">
+                      Programado: {{ formatDateTime(administration.scheduledFor) }}
+                    </p>
                   </div>
                   <span class="status-pill">{{ statusLabel(administration.status) }}</span>
                   @if (administration.notes) {
@@ -166,7 +266,14 @@
           </section>
 
           <div modal-actions>
-            <button mat-flat-button class="primary-action" type="button" (click)="closeMedicationModal()">Cerrar</button>
+            <button
+              mat-flat-button
+              class="primary-action"
+              type="button"
+              (click)="closeMedicationModal()"
+            >
+              Cerrar
+            </button>
           </div>
         </app-entity-modal>
       }
@@ -182,10 +289,28 @@
               <article class="item-card" [class.inactive]="!medication.isActive">
                 <div class="card-heading">
                   <div>
+                    @if (selectedPet(); as pet) {
+                      <span class="pet-ownership-badge" [class.assigned-badge]="!pet.isOwner">
+                        <mat-icon aria-hidden="true">{{
+                          pet.isOwner ? 'home' : 'person'
+                        }}</mat-icon>
+                        {{ pet.name }} -
+                        {{ pet.isOwner ? 'Propia' : 'Asignada por ' + pet.ownerName }}
+                      </span>
+                    }
                     <h2>{{ medication.name }}</h2>
                     <p>{{ medication.dosage }} - {{ medication.frequency }}</p>
                   </div>
-                  <span class="status-pill">{{ medication.isActive ? 'Activo' : 'Inactivo' }}</span>
+                  <div class="status-stack">
+                    <span class="status-pill">{{
+                      medication.isActive ? 'Activo' : 'Inactivo'
+                    }}</span>
+                    @if (medication.isActive && medication.nextDoseAt) {
+                      <span class="dose-pill" [class.dose-due]="isDoseDue(medication)">
+                        {{ doseStatusLabel(medication) }}
+                      </span>
+                    }
+                  </div>
                 </div>
 
                 <dl>
@@ -200,6 +325,26 @@
                   <div>
                     <dt>Veterinario</dt>
                     <dd>{{ medication.prescribingVet || 'Sin registrar' }}</dd>
+                  </div>
+                  <div>
+                    <dt>Intervalo</dt>
+                    <dd>
+                      {{
+                        medication.doseIntervalHours
+                          ? medication.doseIntervalHours + ' h'
+                          : 'Sin programar'
+                      }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Proxima dosis</dt>
+                    <dd [class.dose-due-text]="isDoseDue(medication)">
+                      {{
+                        medication.nextDoseAt
+                          ? formatDateTime(medication.nextDoseAt)
+                          : 'Sin programar'
+                      }}
+                    </dd>
                   </div>
                 </dl>
 
@@ -230,7 +375,12 @@
                     >
                       <mat-icon>edit</mat-icon>
                     </button>
-                    <button mat-button type="button" [disabled]="submitting()" (click)="toggleMedication(medication)">
+                    <button
+                      mat-button
+                      type="button"
+                      [disabled]="submitting()"
+                      (click)="toggleMedication(medication)"
+                    >
                       <mat-icon>{{ medication.isActive ? 'toggle_off' : 'toggle_on' }}</mat-icon>
                       <span>{{ medication.isActive ? 'Desactivar' : 'Activar' }}</span>
                     </button>
@@ -256,7 +406,9 @@
                       [disabled]="submitting() || isAdministered(medication)"
                       (click)="administerMedication(medication)"
                     >
-                      <mat-icon>{{ isAdministered(medication) ? 'check_circle' : 'done' }}</mat-icon>
+                      <mat-icon>{{
+                        isAdministered(medication) ? 'check_circle' : 'done'
+                      }}</mat-icon>
                       <span>{{ isAdministered(medication) ? 'Administrado' : 'Administrar' }}</span>
                     </button>
                   }
@@ -282,11 +434,21 @@
       >
         <div class="delete-warning">
           <mat-icon>warning</mat-icon>
-          <p>Esta accion solo esta disponible para tratamientos inactivos. Las recetas quedaran como receta general.</p>
+          <p>
+            Esta accion solo esta disponible para tratamientos inactivos. Las recetas quedaran como
+            receta general.
+          </p>
         </div>
 
         <div modal-actions>
-          <button mat-button type="button" [disabled]="submitting()" (click)="cancelDeleteMedication()">Cancelar</button>
+          <button
+            mat-button
+            type="button"
+            [disabled]="submitting()"
+            (click)="cancelDeleteMedication()"
+          >
+            Cancelar
+          </button>
           <button
             mat-flat-button
             class="delete-action"

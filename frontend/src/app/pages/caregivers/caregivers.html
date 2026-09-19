@@ -149,6 +149,10 @@
             <article class="item-card compact">
               <div class="card-heading">
                 <div>
+                  <span class="pet-ownership-badge">
+                    <mat-icon aria-hidden="true">home</mat-icon>
+                    Mascota propia
+                  </span>
                   <h3>{{ accessCode.petName }}</h3>
                   <p>{{ accessCodePurposeLabel(accessCode.purpose) }} - {{ accessCodeStatusLabel(accessCode) }}</p>
                 </div>
@@ -192,6 +196,10 @@
           @for (caregiver of ownedAccess(); track caregiver.id) {
             <article class="item-card">
               <div>
+                <span class="pet-ownership-badge">
+                  <mat-icon aria-hidden="true">home</mat-icon>
+                  Mascota propia
+                </span>
                 <h3>{{ caregiver.caregiverName }}</h3>
                 <p>{{ caregiver.caregiverEmail || 'Sin email' }}</p>
               </div>
@@ -238,8 +246,12 @@
             @for (caregiver of receivedAccess(); track caregiver.id) {
               <article class="item-card compact">
                 <div>
+                  <span class="pet-ownership-badge assigned-badge">
+                    <mat-icon aria-hidden="true">person</mat-icon>
+                    Mascota asignada
+                  </span>
                   <h3>{{ caregiver.petName }}</h3>
-                  <p>{{ caregiver.ownerName }} - {{ presetLabel(caregiver.preset) }}</p>
+                  <p>Autorizada por {{ caregiver.ownerName }} - {{ presetLabel(caregiver.preset) }}</p>
                 </div>
                 <div class="card-actions">
                   <button mat-button type="button" class="danger-action" [disabled]="submitting()" (click)="revokeCaregiver(caregiver)">

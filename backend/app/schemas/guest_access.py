@@ -14,6 +14,7 @@ class GuestAccessRequest(BaseModel):
 
 class GuestPetResponse(BaseModel):
     id: UUID
+    ownerName: str
     name: str
     species: str
     breed: str

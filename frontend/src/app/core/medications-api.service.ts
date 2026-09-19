@@ -15,6 +15,12 @@ export interface Medication {
   prescribingVet: string;
   instructions: string;
   isActive: boolean;
+  doseIntervalHours: number | null;
+  nextDoseAt: string | null;
+}
+
+export interface DueMedication extends Medication {
+  petName: string;
 }
 
 export interface MedicationPayload {
@@ -27,6 +33,8 @@ export interface MedicationPayload {
   prescribingVet: string;
   instructions: string;
   isActive: boolean;
+  doseIntervalHours: number | null;
+  nextDoseAt: string | null;
 }
 
 export interface MedicationAdministration {
@@ -35,6 +43,7 @@ export interface MedicationAdministration {
   administeredAt: string;
   status: string;
   notes: string;
+  nextDoseAt: string | null;
 }
 
 export interface MedicationAdministrationHistory {
@@ -51,6 +60,10 @@ interface MedicationListResponse {
   medications: Medication[];
 }
 
+interface DueMedicationListResponse {
+  medications: DueMedication[];
+}
+
 interface MedicationAdministrationHistoryResponse {
   administrations: MedicationAdministrationHistory[];
 }
@@ -60,7 +73,10 @@ export class MedicationsApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/medications`;
   private readonly medicationsRequests = new Map<string, Observable<Medication[]>>();
-  private readonly administrationRequests = new Map<string, Observable<MedicationAdministrationHistory[]>>();
+  private readonly administrationRequests = new Map<
+    string,
+    Observable<MedicationAdministrationHistory[]>
+  >();
 
   listMedications(petId: string): Observable<Medication[]> {
     const cachedRequest = this.medicationsRequests.get(petId);
@@ -70,23 +86,29 @@ export class MedicationsApiService {
     }
 
     const params = new HttpParams().set('petId', petId);
-    const request$ = this.http
-      .get<MedicationListResponse>(this.baseUrl, { params })
-      .pipe(
-        map((response) => response.medications),
-        shareReplay({ bufferSize: 1, refCount: false }),
-        catchError((error: unknown) => {
-          this.medicationsRequests.delete(petId);
-          return throwError(() => error);
-        }),
-      );
+    const request$ = this.http.get<MedicationListResponse>(this.baseUrl, { params }).pipe(
+      map((response) => response.medications),
+      shareReplay({ bufferSize: 1, refCount: false }),
+      catchError((error: unknown) => {
+        this.medicationsRequests.delete(petId);
+        return throwError(() => error);
+      }),
+    );
 
     this.medicationsRequests.set(petId, request$);
     return request$;
   }
 
   createMedication(payload: MedicationPayload): Observable<Medication> {
-    return this.http.post<Medication>(this.baseUrl, payload).pipe(tap(() => this.clearCache(payload.petId)));
+    return this.http
+      .post<Medication>(this.baseUrl, payload)
+      .pipe(tap(() => this.clearCache(payload.petId)));
+  }
+
+  listDueMedications(): Observable<DueMedication[]> {
+    return this.http
+      .get<DueMedicationListResponse>(`${this.baseUrl}/due`)
+      .pipe(map((response) => response.medications));
   }
 
   updateMedication(medicationId: string, payload: MedicationPayload): Observable<Medication> {
@@ -96,8 +118,17 @@ export class MedicationsApiService {
   }
 
   deleteMedication(medication: Medication): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${medication.id}`).pipe(
+      tap(() => {
+        this.clearCache(medication.petId);
+        this.administrationRequests.delete(medication.id);
+      }),
+    );
+  }
+
+  administerMedication(medication: Medication, notes = ''): Observable<MedicationAdministration> {
     return this.http
-      .delete<void>(`${this.baseUrl}/${medication.id}`)
+      .post<MedicationAdministration>(`${this.baseUrl}/${medication.id}/administer`, { notes })
       .pipe(
         tap(() => {
           this.clearCache(medication.petId);
@@ -106,13 +137,9 @@ export class MedicationsApiService {
       );
   }
 
-  administerMedication(medicationId: string, notes = ''): Observable<MedicationAdministration> {
-    return this.http
-      .post<MedicationAdministration>(`${this.baseUrl}/${medicationId}/administer`, { notes })
-      .pipe(tap(() => this.administrationRequests.delete(medicationId)));
-  }
-
-  listMedicationAdministrations(medicationId: string): Observable<MedicationAdministrationHistory[]> {
+  listMedicationAdministrations(
+    medicationId: string,
+  ): Observable<MedicationAdministrationHistory[]> {
     const cachedRequest = this.administrationRequests.get(medicationId);
 
     if (cachedRequest) {
@@ -120,7 +147,9 @@ export class MedicationsApiService {
     }
 
     const request$ = this.http
-      .get<MedicationAdministrationHistoryResponse>(`${this.baseUrl}/${medicationId}/administrations`)
+      .get<MedicationAdministrationHistoryResponse>(
+        `${this.baseUrl}/${medicationId}/administrations`,
+      )
       .pipe(
         map((response) => response.administrations),
         shareReplay({ bufferSize: 1, refCount: false }),

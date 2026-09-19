@@ -48,7 +48,10 @@
           <img [src]="pet()?.photoUrl" [alt]="pet()?.name" />
         }
         <div>
-          <p class="eyebrow">Mascota autorizada</p>
+          <span class="pet-ownership-badge assigned-badge">
+            <mat-icon aria-hidden="true">person</mat-icon>
+            Asignada temporalmente por {{ pet()?.ownerName }}
+          </span>
           <h2>{{ pet()?.name }}</h2>
           <dl>
             <div>
@@ -195,6 +198,10 @@
         @for (medication of medications(); track medication.id) {
           <article class="medication-card">
             <div>
+              <span class="pet-ownership-badge assigned-badge">
+                <mat-icon aria-hidden="true">person</mat-icon>
+                {{ pet()?.name }} - Asignada por {{ pet()?.ownerName }}
+              </span>
               <h3>{{ medication.name }}</h3>
               <p>{{ medication.dosage }} - {{ medication.frequency }}</p>
             </div>

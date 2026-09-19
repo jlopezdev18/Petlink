@@ -50,6 +50,29 @@
   width: min(320px, 100%);
 }
 
+.notification-action,
+.notification-status {
+  min-height: 44px;
+  border: 1px solid var(--petlink-line);
+  border-radius: 6px;
+  color: var(--petlink-teal);
+}
+
+.notification-status {
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--petlink-feedback-bg);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.notification-denied {
+  background: var(--petlink-danger-bg);
+  color: var(--petlink-danger);
+}
+
 .eyebrow {
   margin: 0 0 4px;
   color: var(--petlink-teal);
@@ -120,6 +143,14 @@ mat-form-field,
 
 .wide-field {
   grid-column: 1 / -1;
+}
+
+.schedule-error {
+  grid-column: 1 / -1;
+  margin: -6px 0 0;
+  color: var(--petlink-danger);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .form-actions,
@@ -246,6 +277,34 @@ mat-form-field,
   color: var(--petlink-feedback-text);
   font-size: 12px;
   font-weight: 800;
+}
+
+.status-stack {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dose-pill {
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--petlink-teal) 32%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--petlink-teal) 12%, transparent);
+  color: var(--petlink-teal);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.dose-pill.dose-due {
+  border-color: color-mix(in srgb, var(--petlink-danger) 36%, transparent);
+  background: var(--petlink-danger-bg);
+  color: var(--petlink-danger);
+}
+
+.dose-due-text {
+  color: var(--petlink-danger) !important;
 }
 
 .notes {
@@ -438,7 +497,9 @@ mat-form-field,
   }
 
   .header-actions mat-form-field,
-  .header-actions .primary-action {
+  .header-actions .primary-action,
+  .header-actions .notification-action,
+  .header-actions .notification-status {
     width: 100%;
   }
 

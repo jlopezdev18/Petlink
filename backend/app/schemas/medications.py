@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class MedicationRequest(BaseModel):
@@ -16,6 +16,21 @@ class MedicationRequest(BaseModel):
     prescribing_vet: str | None = Field(default=None, alias="prescribingVet")
     instructions: str | None = None
     is_active: bool = Field(default=True, alias="isActive")
+    dose_interval_hours: int | None = Field(default=None, alias="doseIntervalHours", ge=1, le=8760)
+    next_dose_at: datetime | None = Field(default=None, alias="nextDoseAt")
+
+    @model_validator(mode="after")
+    def validate_schedule(self) -> "MedicationRequest":
+        has_interval = self.dose_interval_hours is not None
+        has_next_dose = self.next_dose_at is not None
+
+        if has_interval != has_next_dose:
+            raise ValueError("doseIntervalHours and nextDoseAt must be provided together.")
+
+        if self.next_dose_at is not None and self.next_dose_at.tzinfo is None:
+            raise ValueError("nextDoseAt must include a timezone.")
+
+        return self
 
 
 class MedicationResponse(BaseModel):
@@ -29,10 +44,20 @@ class MedicationResponse(BaseModel):
     prescribingVet: str
     instructions: str
     isActive: bool
+    doseIntervalHours: int | None
+    nextDoseAt: datetime | None
+
+
+class DueMedicationResponse(MedicationResponse):
+    petName: str
 
 
 class MedicationListResponse(BaseModel):
     medications: list[MedicationResponse]
+
+
+class DueMedicationListResponse(BaseModel):
+    medications: list[DueMedicationResponse]
 
 
 class MedicationLogRequest(BaseModel):
@@ -59,6 +84,7 @@ class MedicationAdministrationResponse(BaseModel):
     administeredAt: datetime
     status: str
     notes: str
+    nextDoseAt: datetime | None
 
 
 class MedicationAdministrationHistoryItem(BaseModel):

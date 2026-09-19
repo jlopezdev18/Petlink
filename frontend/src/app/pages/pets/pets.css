@@ -315,6 +315,10 @@ mat-form-field {
   font-weight: 800;
 }
 
+.pet-info .pet-ownership-badge {
+  margin: 2px 0 10px;
+}
+
 .pet-info p,
 .pet-notes {
   color: var(--petlink-muted);
@@ -324,6 +328,10 @@ mat-form-field {
 
 .pet-info p {
   margin-bottom: 16px;
+}
+
+.view-heading .pet-ownership-badge {
+  margin-bottom: 8px;
 }
 
 .pet-details {

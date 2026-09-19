@@ -199,6 +199,7 @@ def serialize_guest_access(db: DbSession, access_code: PetAccessCode) -> GuestAc
 def serialize_guest_pet(pet: Pet) -> GuestPetResponse:
     return GuestPetResponse(
         id=pet.id,
+        ownerName=pet.owner.full_name,
         name=pet.name,
         species=SPECIES_TO_UI.get(pet.species, "Otro"),
         breed=pet.breed or "",

@@ -7,6 +7,7 @@ import { environment } from '../../environments/environment';
 export interface Pet {
   id: string;
   ownerId: string;
+  ownerName: string;
   name: string;
   species: string;
   breed: string;
