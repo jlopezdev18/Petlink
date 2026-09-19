@@ -1,13 +1,15 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from app.access import get_medication_manageable_pet, get_medication_viewable_pet
 from app.dependencies import CurrentUserDep, DbSession
-from app.models import Medication, MedicationLog
+from app.models import Medication, MedicationLog, Pet, PetCaregiver
 from app.schemas.medications import (
+    DueMedicationListResponse,
+    DueMedicationResponse,
     MedicationAdministrationHistoryResponse,
     MedicationAdministrationHistoryItem,
     MedicationAdministrationRequest,
@@ -36,6 +38,41 @@ def list_medications(
     return MedicationListResponse(medications=[serialize_medication(medication) for medication in medications])
 
 
+@router.get("/due", response_model=DueMedicationListResponse)
+def list_due_medications(
+    current_user: CurrentUserDep,
+    db: DbSession,
+) -> DueMedicationListResponse:
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    caregiver_access = (
+        (PetCaregiver.pet_id == Pet.id)
+        & (PetCaregiver.caregiver_id == current_user.id)
+        & (PetCaregiver.status == "accepted")
+        & (PetCaregiver.can_view_pet.is_(True))
+        & (PetCaregiver.can_view_medications.is_(True))
+    )
+    rows = db.execute(
+        select(Medication, Pet.name)
+        .join(Pet, Pet.id == Medication.pet_id)
+        .outerjoin(PetCaregiver, caregiver_access)
+        .where(
+            Medication.is_active.is_(True),
+            Medication.dose_interval_hours.is_not(None),
+            Medication.next_dose_at.is_not(None),
+            Medication.next_dose_at <= now,
+            Medication.start_date <= today,
+            or_(Medication.end_date.is_(None), Medication.end_date >= today),
+            or_(Pet.owner_id == current_user.id, PetCaregiver.id.is_not(None)),
+        )
+        .order_by(Medication.next_dose_at.asc())
+    ).all()
+
+    return DueMedicationListResponse(
+        medications=[serialize_due_medication(medication, pet_name) for medication, pet_name in rows]
+    )
+
+
 @router.post("", response_model=MedicationResponse, status_code=status.HTTP_201_CREATED)
 def create_medication(
     request: MedicationRequest,
@@ -54,6 +91,8 @@ def create_medication(
         prescribing_vet=clean_optional_text(request.prescribing_vet),
         instructions=clean_optional_text(request.instructions),
         is_active=request.is_active,
+        dose_interval_hours=request.dose_interval_hours,
+        next_dose_at=request.next_dose_at,
     )
     validate_dates(medication)
     db.add(medication)
@@ -85,6 +124,8 @@ def update_medication(
     medication.prescribing_vet = clean_optional_text(request.prescribing_vet)
     medication.instructions = clean_optional_text(request.instructions)
     medication.is_active = request.is_active
+    medication.dose_interval_hours = request.dose_interval_hours
+    medication.next_dose_at = request.next_dose_at
     validate_dates(medication)
     db.commit()
     db.refresh(medication)
@@ -105,12 +146,18 @@ def administer_medication(
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Medication is inactive.")
 
     now = datetime.now(timezone.utc)
+    scheduled_for = medication.next_dose_at or now
     medication_log = MedicationLog(
         medication_id=medication.id,
-        scheduled_for=now,
+        scheduled_for=scheduled_for,
         administered_at=now,
         status="given",
         notes=clean_optional_text(request.notes),
+    )
+    medication.next_dose_at = calculate_next_dose_at(
+        scheduled_for,
+        medication.dose_interval_hours,
+        now,
     )
     db.add(medication_log)
     db.commit()
@@ -121,6 +168,7 @@ def administer_medication(
         administeredAt=medication_log.administered_at or now,
         status=medication_log.status,
         notes=medication_log.notes or "",
+        nextDoseAt=medication.next_dose_at,
     )
 
 
@@ -188,6 +236,15 @@ def serialize_medication(medication: Medication) -> MedicationResponse:
         prescribingVet=medication.prescribing_vet or "",
         instructions=medication.instructions or "",
         isActive=medication.is_active,
+        doseIntervalHours=medication.dose_interval_hours,
+        nextDoseAt=medication.next_dose_at,
+    )
+
+
+def serialize_due_medication(medication: Medication, pet_name: str) -> DueMedicationResponse:
+    return DueMedicationResponse(
+        **serialize_medication(medication).model_dump(),
+        petName=pet_name,
     )
 
 
@@ -209,6 +266,28 @@ def validate_dates(medication: Medication) -> None:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="endDate cannot be earlier than startDate.",
         )
+
+
+def calculate_next_dose_at(
+    scheduled_for: datetime,
+    dose_interval_hours: int | None,
+    administered_at: datetime,
+) -> datetime | None:
+    if dose_interval_hours is None:
+        return None
+
+    scheduled_for = ensure_utc(scheduled_for)
+    administered_at = ensure_utc(administered_at)
+    interval = timedelta(hours=dose_interval_hours)
+    elapsed_intervals = max(0, (administered_at - scheduled_for) // interval)
+    return scheduled_for + (elapsed_intervals + 1) * interval
+
+
+def ensure_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+
+    return value.astimezone(timezone.utc)
 
 
 def clean_required_text(value: str, field_name: str) -> str:

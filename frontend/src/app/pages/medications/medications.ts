@@ -1,5 +1,11 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,11 +19,18 @@ import {
   MedicationAdministrationHistory,
   MedicationsApiService,
 } from '../../core/medications-api.service';
+import { MedicationNotificationsService } from '../../core/medication-notifications.service';
 import { Pet, PetsApiService } from '../../core/pets-api.service';
 import { EntityModal } from '../../shared/entity-modal/entity-modal';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 
 type MedicationModalMode = 'create' | 'edit' | 'view' | null;
+
+function medicationScheduleValidator(control: AbstractControl): ValidationErrors | null {
+  const hasInterval = control.get('doseIntervalHours')?.value !== null;
+  const hasNextDose = Boolean(control.get('nextDoseAt')?.value);
+  return hasInterval === hasNextDose ? null : { scheduleIncomplete: true };
+}
 
 @Component({
   selector: 'app-medications-page',
@@ -39,6 +52,7 @@ export class MedicationsPage implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
   private readonly petsApiService = inject(PetsApiService);
   private readonly medicationsApiService = inject(MedicationsApiService);
+  private readonly medicationNotificationsService = inject(MedicationNotificationsService);
 
   protected readonly loading = signal(true);
   protected readonly loadingMedications = signal(false);
@@ -53,11 +67,14 @@ export class MedicationsPage implements OnInit {
   protected readonly selectedMedication = signal<Medication | null>(null);
   protected readonly medicationPendingDelete = signal<Medication | null>(null);
   protected readonly administeredMedicationIds = signal<Set<string>>(new Set<string>());
+  protected readonly notificationPermission = this.medicationNotificationsService.permission;
 
-  protected readonly selectedPet = computed(() =>
-    this.pets().find((pet) => pet.id === this.selectedPetId()) ?? null,
+  protected readonly selectedPet = computed(
+    () => this.pets().find((pet) => pet.id === this.selectedPetId()) ?? null,
   );
-  protected readonly canManageSelectedPet = computed(() => this.selectedPet()?.canManageMedications ?? false);
+  protected readonly canManageSelectedPet = computed(
+    () => this.selectedPet()?.canManageMedications ?? false,
+  );
   protected readonly canAdministerSelectedPet = computed(() => Boolean(this.selectedPet()));
   protected readonly editingMedication = computed(() =>
     this.modalMode() === 'edit' ? this.selectedMedication() : null,
@@ -65,22 +82,30 @@ export class MedicationsPage implements OnInit {
   protected readonly viewingMedication = computed(() =>
     this.modalMode() === 'view' ? this.selectedMedication() : null,
   );
-  protected readonly isMedicationFormOpen = computed(() =>
-    this.modalMode() === 'create' || this.modalMode() === 'edit',
+  protected readonly isMedicationFormOpen = computed(
+    () => this.modalMode() === 'create' || this.modalMode() === 'edit',
   );
   protected readonly modalTitle = computed(() =>
     this.editingMedication() ? 'Editar medicamento' : 'Agregar medicamento',
   );
 
-  protected readonly form = this.formBuilder.nonNullable.group({
-    name: ['', Validators.required],
-    dosage: ['', Validators.required],
-    frequency: ['', Validators.required],
-    startDate: ['', Validators.required],
-    endDate: [''],
-    prescribingVet: [''],
-    instructions: [''],
-  });
+  protected readonly form = this.formBuilder.nonNullable.group(
+    {
+      name: ['', Validators.required],
+      dosage: ['', Validators.required],
+      frequency: ['', Validators.required],
+      startDate: ['', Validators.required],
+      endDate: [''],
+      prescribingVet: [''],
+      instructions: [''],
+      doseIntervalHours: this.formBuilder.control<number | null>(null, [
+        Validators.min(1),
+        Validators.max(8760),
+      ]),
+      nextDoseAt: [''],
+    },
+    { validators: medicationScheduleValidator },
+  );
 
   ngOnInit(): void {
     void this.loadPets();
@@ -118,6 +143,8 @@ export class MedicationsPage implements OnInit {
       endDate: medication.endDate ?? '',
       prescribingVet: medication.prescribingVet,
       instructions: medication.instructions,
+      doseIntervalHours: medication.doseIntervalHours,
+      nextDoseAt: this.toDateTimeLocal(medication.nextDoseAt),
     });
     this.modalMode.set('edit');
   }
@@ -161,6 +188,8 @@ export class MedicationsPage implements OnInit {
       prescribingVet: rawMedication.prescribingVet.trim(),
       instructions: rawMedication.instructions.trim(),
       isActive: editingMedication?.isActive ?? true,
+      doseIntervalHours: rawMedication.doseIntervalHours,
+      nextDoseAt: this.toIsoDateTime(rawMedication.nextDoseAt),
     };
 
     this.submitting.set(true);
@@ -171,11 +200,15 @@ export class MedicationsPage implements OnInit {
           this.medicationsApiService.updateMedication(editingMedication.id, payload),
         );
         this.medications.update((medications) =>
-          medications.map((medication) => (medication.id === updatedMedication.id ? updatedMedication : medication)),
+          medications.map((medication) =>
+            medication.id === updatedMedication.id ? updatedMedication : medication,
+          ),
         );
         this.feedback.set('Medicamento actualizado.');
       } else {
-        const createdMedication = await firstValueFrom(this.medicationsApiService.createMedication(payload));
+        const createdMedication = await firstValueFrom(
+          this.medicationsApiService.createMedication(payload),
+        );
         this.medications.update((medications) => [createdMedication, ...medications]);
         this.feedback.set('Medicamento agregado.');
       }
@@ -208,6 +241,8 @@ export class MedicationsPage implements OnInit {
           prescribingVet: medication.prescribingVet,
           instructions: medication.instructions,
           isActive: !medication.isActive,
+          doseIntervalHours: medication.doseIntervalHours,
+          nextDoseAt: medication.nextDoseAt,
         }),
       );
       this.medications.update((medications) =>
@@ -215,7 +250,9 @@ export class MedicationsPage implements OnInit {
           currentMedication.id === updatedMedication.id ? updatedMedication : currentMedication,
         ),
       );
-      this.feedback.set(updatedMedication.isActive ? 'Tratamiento reactivado.' : 'Tratamiento desactivado.');
+      this.feedback.set(
+        updatedMedication.isActive ? 'Tratamiento reactivado.' : 'Tratamiento desactivado.',
+      );
     } catch {
       this.feedback.set('No pudimos cambiar el estado del medicamento.');
     } finally {
@@ -232,8 +269,19 @@ export class MedicationsPage implements OnInit {
     this.feedback.set('');
 
     try {
-      await firstValueFrom(this.medicationsApiService.administerMedication(medication.id));
-      this.administeredMedicationIds.update((medicationIds) => new Set(medicationIds).add(medication.id));
+      const administration = await firstValueFrom(
+        this.medicationsApiService.administerMedication(medication),
+      );
+      this.medications.update((medications) =>
+        medications.map((currentMedication) =>
+          currentMedication.id === medication.id
+            ? { ...currentMedication, nextDoseAt: administration.nextDoseAt }
+            : currentMedication,
+        ),
+      );
+      this.administeredMedicationIds.update((medicationIds) =>
+        new Set(medicationIds).add(medication.id),
+      );
       if (this.viewingMedication()?.id === medication.id) {
         await this.loadAdministrationHistory(medication.id);
       }
@@ -247,6 +295,34 @@ export class MedicationsPage implements OnInit {
 
   protected isAdministered(medication: Medication): boolean {
     return this.administeredMedicationIds().has(medication.id);
+  }
+
+  protected isDoseDue(medication: Medication): boolean {
+    return (
+      medication.isActive &&
+      Boolean(medication.nextDoseAt) &&
+      new Date(medication.nextDoseAt!).getTime() <= Date.now()
+    );
+  }
+
+  protected doseStatusLabel(medication: Medication): string {
+    if (!medication.nextDoseAt || !medication.doseIntervalHours) {
+      return 'Sin programar';
+    }
+
+    return this.isDoseDue(medication) ? 'Dosis pendiente' : 'Programada';
+  }
+
+  protected async enableNotifications(): Promise<void> {
+    const permission = await this.medicationNotificationsService.requestPermission();
+
+    if (permission === 'granted') {
+      this.feedback.set('Avisos de medicamentos activados.');
+    } else if (permission === 'denied') {
+      this.feedback.set('El navegador bloqueo los avisos de medicamentos.');
+    } else if (permission === 'unsupported') {
+      this.feedback.set('Este navegador no admite notificaciones.');
+    }
   }
 
   protected formatDateTime(value: string | null): string {
@@ -342,7 +418,9 @@ export class MedicationsPage implements OnInit {
     this.loadingMedications.set(true);
 
     try {
-      const medications = await firstValueFrom(this.medicationsApiService.listMedications(this.selectedPetId()));
+      const medications = await firstValueFrom(
+        this.medicationsApiService.listMedications(this.selectedPetId()),
+      );
       this.medications.set(medications);
       this.administeredMedicationIds.set(new Set<string>());
       this.administrationHistory.set([]);
@@ -385,6 +463,22 @@ export class MedicationsPage implements OnInit {
       endDate: '',
       prescribingVet: '',
       instructions: '',
+      doseIntervalHours: null,
+      nextDoseAt: '',
     });
+  }
+
+  private toIsoDateTime(value: string): string | null {
+    return value ? new Date(value).toISOString() : null;
+  }
+
+  private toDateTimeLocal(value: string | null): string {
+    if (!value) {
+      return '';
+    }
+
+    const date = new Date(value);
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+    return localDate.toISOString().slice(0, 16);
   }
 }
