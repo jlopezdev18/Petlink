@@ -164,6 +164,10 @@
 
           <div class="view-heading">
             <h3>{{ pet.name }}</h3>
+            <span class="pet-ownership-badge" [class.assigned-badge]="!pet.isOwner">
+              <mat-icon aria-hidden="true">{{ pet.isOwner ? 'home' : 'person' }}</mat-icon>
+              {{ pet.isOwner ? 'Propia' : 'Asignada por ' + pet.ownerName }}
+            </span>
             <p>{{ pet.species }}{{ pet.breed ? ' - ' + pet.breed : '' }}</p>
           </div>
         </div>
@@ -276,6 +280,10 @@
 
             <div class="pet-info">
               <h2>{{ pet.name }}</h2>
+              <span class="pet-ownership-badge" [class.assigned-badge]="!pet.isOwner">
+                <mat-icon aria-hidden="true">{{ pet.isOwner ? 'home' : 'person' }}</mat-icon>
+                {{ pet.isOwner ? 'Propia' : 'Asignada por ' + pet.ownerName }}
+              </span>
               <p>{{ pet.species }}{{ pet.breed ? ' - ' + pet.breed : '' }}</p>
             </div>
 

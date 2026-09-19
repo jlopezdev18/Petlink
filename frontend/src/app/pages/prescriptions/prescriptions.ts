@@ -51,6 +51,9 @@ export class PrescriptionsPage implements OnInit {
   protected readonly selectedPrescription = signal<Prescription | null>(null);
 
   protected readonly ownerPets = computed(() => this.pets().filter((pet) => pet.isOwner));
+  protected readonly selectedPet = computed(() =>
+    this.ownerPets().find((pet) => pet.id === this.selectedPetId()) ?? null,
+  );
   protected readonly editingPrescription = computed(() =>
     this.modalMode() === 'edit' ? this.selectedPrescription() : null,
   );

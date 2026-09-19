@@ -123,3 +123,34 @@ button,
 input {
   font: inherit;
 }
+
+.pet-ownership-badge {
+  max-width: 100%;
+  margin-bottom: 10px;
+  padding: 5px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid color-mix(in srgb, var(--petlink-teal) 32%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--petlink-teal) 12%, transparent);
+  color: var(--petlink-teal);
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.pet-ownership-badge mat-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  font-size: 16px;
+  line-height: 16px;
+}
+
+.pet-ownership-badge.assigned-badge {
+  border-color: color-mix(in srgb, var(--petlink-purple) 32%, transparent);
+  background: color-mix(in srgb, var(--petlink-purple) 12%, transparent);
+  color: var(--petlink-purple);
+}

@@ -15,7 +15,9 @@
           <mat-icon matPrefix>pets</mat-icon>
           <mat-select [value]="selectedPetId()" (selectionChange)="changePet($event.value)">
             @for (pet of pets(); track pet.id) {
-              <mat-option [value]="pet.id">{{ pet.name }}</mat-option>
+              <mat-option [value]="pet.id">
+                {{ pet.name }} - {{ pet.isOwner ? 'Propia' : 'Asignada por ' + pet.ownerName }}
+              </mat-option>
             }
           </mat-select>
         </mat-form-field>
@@ -182,6 +184,12 @@
               <article class="item-card" [class.inactive]="!medication.isActive">
                 <div class="card-heading">
                   <div>
+                    @if (selectedPet(); as pet) {
+                      <span class="pet-ownership-badge" [class.assigned-badge]="!pet.isOwner">
+                        <mat-icon aria-hidden="true">{{ pet.isOwner ? 'home' : 'person' }}</mat-icon>
+                        {{ pet.name }} - {{ pet.isOwner ? 'Propia' : 'Asignada por ' + pet.ownerName }}
+                      </span>
+                    }
                     <h2>{{ medication.name }}</h2>
                     <p>{{ medication.dosage }} - {{ medication.frequency }}</p>
                   </div>

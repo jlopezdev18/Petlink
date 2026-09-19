@@ -8,6 +8,7 @@ import { environment } from '../../environments/environment';
 
 export interface GuestPet {
   id: string;
+  ownerName: string;
   name: string;
   species: string;
   breed: string;

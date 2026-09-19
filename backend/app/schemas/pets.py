@@ -7,6 +7,7 @@ from pydantic import BaseModel
 class PetResponse(BaseModel):
     id: UUID
     ownerId: UUID
+    ownerName: str
     name: str
     species: str
     breed: str
