@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: '',
+  apiUrl: 'https://petlink-production-15a6.up.railway.app',
   publicAppUrl: '',
   supabaseUrl: 'https://uimxlgudpxdtbkujngxh.supabase.co',
   supabaseAnonKey: '',
