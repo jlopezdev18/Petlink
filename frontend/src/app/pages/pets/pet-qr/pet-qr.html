@@ -1,0 +1,160 @@
+<app-entity-modal
+  [title]="'QR permanente de ' + pet().name"
+  description="Identificación y reportes de hallazgo."
+  (closed)="requestClose()"
+>
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-progress-spinner diameter="42" mode="indeterminate" />
+    </div>
+  } @else if (tag(); as currentTag) {
+    <mat-tab-group animationDuration="180ms">
+      <mat-tab label="Código QR">
+        <div class="tab-content qr-layout">
+          <section class="qr-preview" aria-label="Código QR permanente">
+            <p class="qr-brand">PetLink</p>
+            <h3>{{ pet().name }}</h3>
+            @if (qrImageUrl()) {
+              <img [src]="qrImageUrl()" [alt]="'Código QR de ' + pet().name" />
+            }
+            <p>¿Me encontraste? Escanea para avisar.</p>
+          </section>
+
+          <section class="qr-tools">
+            <a class="scan-link" [href]="scanUrl()" target="_blank" rel="noreferrer">{{
+              scanUrl()
+            }}</a>
+            <div class="qr-actions">
+              <button mat-stroked-button type="button" (click)="downloadQr()">
+                <mat-icon>download</mat-icon>
+                <span>Descargar</span>
+              </button>
+              <button mat-stroked-button type="button" (click)="printQr()">
+                <mat-icon>print</mat-icon>
+                <span>Imprimir</span>
+              </button>
+            </div>
+          </section>
+
+          <form class="settings-form" [formGroup]="settingsForm" (ngSubmit)="saveSettings()">
+            <mat-slide-toggle formControlName="isLost">Marcar como extraviada</mat-slide-toggle>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Mensaje de extravío</mat-label>
+              <textarea matInput rows="3" formControlName="lostMessage"></textarea>
+              @if (settingsForm.controls.lostMessage.hasError('maxlength')) {
+                <mat-error>El mensaje admite hasta 500 caracteres.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-slide-toggle formControlName="showOwnerPhone">
+              Mostrar mi teléfono para llamadas
+            </mat-slide-toggle>
+
+            <button mat-flat-button class="save-settings" type="submit" [disabled]="saving()">
+              <mat-icon>save</mat-icon>
+              <span>{{ saving() ? 'Guardando...' : 'Guardar configuración' }}</span>
+            </button>
+          </form>
+        </div>
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label>
+          Reportes
+          @if (pendingReportCount()) {
+            <span class="tab-count">{{ pendingReportCount() }}</span>
+          }
+        </ng-template>
+
+        <div class="tab-content reports-list">
+          @for (report of reports(); track report.id) {
+            <article class="report-item" [class.pending-report]="report.status === 'pending'">
+              <header>
+                <span class="report-status" [attr.data-status]="report.status">{{
+                  statusLabel(report.status)
+                }}</span>
+                <time [attr.datetime]="report.createdAt">{{
+                  report.createdAt | date: 'medium'
+                }}</time>
+              </header>
+
+              <p class="report-message">{{ report.message }}</p>
+
+              @if (report.locationDescription) {
+                <p class="report-detail">
+                  <mat-icon>place</mat-icon>
+                  <span>{{ report.locationDescription }}</span>
+                </p>
+              }
+
+              <div class="report-links">
+                @if (report.reporterPhone) {
+                  <a mat-stroked-button [href]="phoneHref(report.reporterPhone)">
+                    <mat-icon>call</mat-icon>
+                    <span>{{ report.reporterName || report.reporterPhone }}</span>
+                  </a>
+                }
+                @if (report.latitude !== null && report.longitude !== null) {
+                  <a mat-stroked-button [href]="mapHref(report)" target="_blank" rel="noreferrer">
+                    <mat-icon>map</mat-icon>
+                    <span>Abrir ubicación</span>
+                  </a>
+                }
+              </div>
+
+              <div class="report-actions">
+                @if (report.status === 'pending') {
+                  <button
+                    mat-button
+                    type="button"
+                    [disabled]="reportUpdatingId() === report.id"
+                    (click)="updateReportStatus(report, 'reviewed')"
+                  >
+                    <mat-icon>done</mat-icon>
+                    <span>Marcar revisado</span>
+                  </button>
+                  <button
+                    mat-button
+                    type="button"
+                    [disabled]="reportUpdatingId() === report.id"
+                    (click)="updateReportStatus(report, 'dismissed')"
+                  >
+                    <mat-icon>block</mat-icon>
+                    <span>Descartar</span>
+                  </button>
+                } @else {
+                  <button
+                    mat-button
+                    type="button"
+                    [disabled]="reportUpdatingId() === report.id"
+                    (click)="updateReportStatus(report, 'pending')"
+                  >
+                    <mat-icon>undo</mat-icon>
+                    <span>Reabrir</span>
+                  </button>
+                }
+              </div>
+            </article>
+          } @empty {
+            <div class="empty-reports">
+              <mat-icon>location_searching</mat-icon>
+              <h3>Sin reportes</h3>
+              <p>Los avisos enviados desde el QR aparecerán aquí.</p>
+            </div>
+          }
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  }
+
+  @if (feedback()) {
+    <p class="panel-feedback" role="status">{{ feedback() }}</p>
+  }
+
+  <div modal-actions>
+    <button mat-flat-button class="close-button" type="button" (click)="requestClose()">
+      Cerrar
+    </button>
+  </div>
+</app-entity-modal>

@@ -21,6 +21,19 @@
       <p class="feedback" role="status">{{ feedback() }}</p>
     }
 
+    @if (firstPetWithPendingReport(); as pendingPet) {
+      <button class="sighting-alert" type="button" (click)="openPetQr(pendingPet)">
+        <mat-icon>notification_important</mat-icon>
+        <span>
+          {{
+            pendingReportCount() === 1
+              ? 'Hay 1 reporte de hallazgo pendiente'
+              : 'Hay ' + pendingReportCount() + ' reportes de hallazgo pendientes'
+          }}
+        </span>
+      </button>
+    }
+
     @if (isPetFormOpen()) {
       <app-entity-modal [title]="formTitle()" (closed)="cancelForm()">
         <form id="pet-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
@@ -132,11 +145,12 @@
               ></textarea>
             </mat-form-field>
           </div>
-
         </form>
 
         <div modal-actions>
-          <button mat-button type="button" [disabled]="submitting()" (click)="cancelForm()">Cancelar</button>
+          <button mat-button type="button" [disabled]="submitting()" (click)="cancelForm()">
+            Cancelar
+          </button>
           <button
             mat-flat-button
             class="save-button"
@@ -152,13 +166,19 @@
     }
 
     @if (viewingPet(); as pet) {
-      <app-entity-modal [title]="pet.name" description="Datos registrados de la mascota." (closed)="closeModal()">
+      <app-entity-modal
+        [title]="pet.name"
+        description="Datos registrados de la mascota."
+        (closed)="closeModal()"
+      >
         <div class="view-summary">
           <div class="view-photo">
             @if (pet.photoUrl) {
               <img [src]="pet.photoUrl" [alt]="'Foto de ' + pet.name" />
             } @else {
-              <mat-icon aria-hidden="true">{{ pet.species === 'Gato' ? 'cruelty_free' : 'pets' }}</mat-icon>
+              <mat-icon aria-hidden="true">{{
+                pet.species === 'Gato' ? 'cruelty_free' : 'pets'
+              }}</mat-icon>
             }
           </div>
 
@@ -205,9 +225,19 @@
         </div>
 
         <div modal-actions>
-          <button mat-flat-button class="save-button" type="button" (click)="closeModal()">Cerrar</button>
+          <button mat-flat-button class="save-button" type="button" (click)="closeModal()">
+            Cerrar
+          </button>
         </div>
       </app-entity-modal>
+    }
+
+    @if (qrPet(); as pet) {
+      <app-pet-qr
+        [pet]="pet"
+        (closed)="closePetQr()"
+        (pendingCountChanged)="updatePendingReportCount(pet.id, $event)"
+      />
     }
 
     @if (loading()) {
@@ -249,6 +279,16 @@
                 @if (pet.isOwner) {
                   <button
                     mat-icon-button
+                    class="qr-card-button"
+                    type="button"
+                    [attr.aria-label]="'Abrir QR y reportes de ' + pet.name"
+                    [attr.title]="'Abrir QR y reportes de ' + pet.name"
+                    (click)="openPetQr(pet)"
+                  >
+                    <mat-icon>qr_code_2</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
                     class="delete-card-button"
                     type="button"
                     [attr.aria-label]="'Eliminar ' + pet.name"
@@ -274,7 +314,9 @@
                   (error)="finishPhotoLoad(pet)"
                 />
               } @else {
-                <mat-icon aria-hidden="true">{{ pet.species === 'Gato' ? 'cruelty_free' : 'pets' }}</mat-icon>
+                <mat-icon aria-hidden="true">{{
+                  pet.species === 'Gato' ? 'cruelty_free' : 'pets'
+                }}</mat-icon>
               }
             </div>
 
@@ -284,6 +326,16 @@
                 <mat-icon aria-hidden="true">{{ pet.isOwner ? 'home' : 'person' }}</mat-icon>
                 {{ pet.isOwner ? 'Propia' : 'Asignada por ' + pet.ownerName }}
               </span>
+              @if (pet.pendingSightingReports) {
+                <button class="sighting-badge" type="button" (click)="openPetQr(pet)">
+                  <mat-icon>location_searching</mat-icon>
+                  <span
+                    >{{ pet.pendingSightingReports }} pendiente{{
+                      pet.pendingSightingReports === 1 ? '' : 's'
+                    }}</span
+                  >
+                </button>
+              }
               <p>{{ pet.species }}{{ pet.breed ? ' - ' + pet.breed : '' }}</p>
             </div>
 
@@ -314,7 +366,13 @@
           <div class="empty-state">
             <mat-icon>pets</mat-icon>
             <h2>No hay mascotas registradas</h2>
-            <p>{{ isOwnerMode() ? 'Agrega la primera mascota para empezar su seguimiento.' : 'Cuando te asignen una mascota, aparecera aqui.' }}</p>
+            <p>
+              {{
+                isOwnerMode()
+                  ? 'Agrega la primera mascota para empezar su seguimiento.'
+                  : 'Cuando te asignen una mascota, aparecera aqui.'
+              }}
+            </p>
           </div>
         }
       </section>
@@ -339,7 +397,9 @@
         <p>¿Seguro que deseas eliminar a {{ pet.name }}?</p>
 
         <div class="confirm-actions">
-          <button mat-button type="button" [disabled]="deleting()" (click)="cancelDelete()">Cancelar</button>
+          <button mat-button type="button" [disabled]="deleting()" (click)="cancelDelete()">
+            Cancelar
+          </button>
           <button
             mat-flat-button
             class="confirm-delete-button"

@@ -31,6 +31,10 @@ La API estara disponible en `http://127.0.0.1:8000`.
 - Cuidadores: `GET|POST http://127.0.0.1:8000/caregivers`
 - Codigos temporales: `GET|POST|DELETE http://127.0.0.1:8000/caregivers/access-codes`
 - Acceso invitado: `POST http://127.0.0.1:8000/guest-access/validate`
+- QR permanente: `POST|PUT http://127.0.0.1:8000/pets/{pet_id}/qr-tag`
+- Ficha QR pública: `GET http://127.0.0.1:8000/pet-tags/{token}`
+- Reportar hallazgo: `POST http://127.0.0.1:8000/pet-tags/{token}/reports`
+- Revisar reportes: `GET http://127.0.0.1:8000/pets/{pet_id}/sighting-reports`
 
 Si PowerShell no permite activar el entorno virtual, puedes correr el servidor asi:
 
@@ -72,6 +76,7 @@ Abre `http://localhost:4200` para comprobar la instalacion y el funcionamiento s
 - `PET_FILES_BUCKET`: bucket privado para fotos de mascotas. Por defecto: `pet-files`.
 - Frontend desarrollo: `frontend/src/environments/environment.ts`.
 - Frontend produccion: `frontend/src/environments/environment.prod.ts`.
+- `publicAppUrl`: dominio HTTPS estable que se codificará en los QR impresos. Si está vacío, se usa el dominio actual.
 
 ## Flujo de mascotas
 
@@ -96,6 +101,14 @@ Abre `http://localhost:4200` para comprobar la instalacion y el funcionamiento s
 3. El veterinario entra sin registrarse.
 4. El veterinario puede crear medicamentos y subir recetas para la mascota autorizada.
 5. El veterinario no se agrega como cuidador registrado por email.
+
+## Flujo del QR permanente
+
+1. Al registrar una mascota se genera un token QR único que no vence ni cambia con el estado de extravío.
+2. El propietario descarga o imprime el QR desde `/mascotas` y decide si publica su teléfono para llamadas.
+3. Cualquier persona puede abrir `/#/qr-mascota/{token}` y reportar un hallazgo, aunque la mascota no esté marcada como extraviada.
+4. La ubicación GPS se solicita únicamente al pulsar el botón correspondiente; también se acepta una referencia escrita.
+5. El reporte queda pendiente para el propietario y no cambia automáticamente el estado público de la mascota.
 
 ## Tipos de cuenta
 

@@ -21,6 +21,7 @@ class PetResponse(BaseModel):
     isOwner: bool
     canUpdatePet: bool
     canManageMedications: bool
+    pendingSightingReports: int
 
 
 class PetListResponse(BaseModel):

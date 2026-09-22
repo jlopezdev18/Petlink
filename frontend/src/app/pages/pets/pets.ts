@@ -12,6 +12,7 @@ import { AuthService } from '../../core/auth.service';
 import { Pet, PetFormPayload, PetsApiService } from '../../core/pets-api.service';
 import { EntityModal } from '../../shared/entity-modal/entity-modal';
 import { Sidebar } from '../../shared/sidebar/sidebar';
+import { PetQr } from './pet-qr/pet-qr';
 
 type PetModalMode = 'create' | 'edit' | 'view' | null;
 
@@ -56,6 +57,7 @@ const createDefaultPetFormValue = (): PetFormValue => ({ ...DEFAULT_PET_FORM_VAL
     MatProgressSpinnerModule,
     MatSelectModule,
     EntityModal,
+    PetQr,
   ],
   templateUrl: './pets.html',
   styleUrl: './pets.css',
@@ -76,6 +78,7 @@ export class Pets implements OnInit {
   protected readonly removePhotoRequested = signal(false);
   protected readonly editingPetId = signal<string | null>(null);
   protected readonly selectedPet = signal<Pet | null>(null);
+  protected readonly qrPet = signal<Pet | null>(null);
   protected readonly petPendingDelete = signal<Pet | null>(null);
   protected readonly pets = signal<Pet[]>([]);
   private readonly initialFormSnapshot = signal<PetFormSnapshot>({
@@ -87,11 +90,23 @@ export class Pets implements OnInit {
     const total = this.pets().length;
     return total === 1 ? '1 mascota registrada' : `${total} mascotas registradas`;
   });
+  protected readonly pendingReportCount = computed(() =>
+    this.pets().reduce((total, pet) => total + pet.pendingSightingReports, 0),
+  );
+  protected readonly firstPetWithPendingReport = computed(
+    () => this.pets().find((pet) => pet.pendingSightingReports > 0) ?? null,
+  );
   protected readonly isEditing = computed(() => this.modalMode() === 'edit');
-  protected readonly isPetFormOpen = computed(() => this.modalMode() === 'create' || this.modalMode() === 'edit');
-  protected readonly viewingPet = computed(() => (this.modalMode() === 'view' ? this.selectedPet() : null));
+  protected readonly isPetFormOpen = computed(
+    () => this.modalMode() === 'create' || this.modalMode() === 'edit',
+  );
+  protected readonly viewingPet = computed(() =>
+    this.modalMode() === 'view' ? this.selectedPet() : null,
+  );
   protected readonly isOwnerMode = computed(() => this.authService.accountType === 'owner');
-  protected readonly formTitle = computed(() => (this.isEditing() ? 'Editar mascota' : 'Agregar mascota'));
+  protected readonly formTitle = computed(() =>
+    this.isEditing() ? 'Editar mascota' : 'Agregar mascota',
+  );
   protected readonly saveButtonLabel = computed(() =>
     this.isEditing() ? 'Guardar cambios' : 'Guardar mascota',
   );
@@ -161,6 +176,30 @@ export class Pets implements OnInit {
     this.modalMode.set('view');
   }
 
+  protected openPetQr(pet: Pet): void {
+    if (!this.isOwnerMode() || !pet.isOwner) {
+      return;
+    }
+
+    this.feedback.set('');
+    this.qrPet.set(pet);
+  }
+
+  protected closePetQr(): void {
+    this.qrPet.set(null);
+  }
+
+  protected updatePendingReportCount(petId: string, pendingCount: number): void {
+    this.pets.update((pets) =>
+      pets.map((pet) =>
+        pet.id === petId ? { ...pet, pendingSightingReports: pendingCount } : pet,
+      ),
+    );
+    this.qrPet.update((pet) =>
+      pet?.id === petId ? { ...pet, pendingSightingReports: pendingCount } : pet,
+    );
+  }
+
   protected hasNewChanges(): boolean {
     const initialSnapshot = this.initialFormSnapshot();
     const photoChanged =
@@ -168,7 +207,10 @@ export class Pets implements OnInit {
       this.removePhotoRequested() ||
       this.photoPreview() !== initialSnapshot.photoUrl;
 
-    return !this.areFormValuesEqual(this.getNormalizedFormValue(), initialSnapshot.formValue) || photoChanged;
+    return (
+      !this.areFormValuesEqual(this.getNormalizedFormValue(), initialSnapshot.formValue) ||
+      photoChanged
+    );
   }
 
   protected selectPhoto(event: Event): void {
@@ -319,7 +361,9 @@ export class Pets implements OnInit {
       this.pets.set(pets);
       this.loadingPhotoIds.set(new Set(pets.filter((pet) => pet.photoUrl).map((pet) => pet.id)));
     } catch {
-      this.feedback.set('No pudimos cargar tus mascotas. Inicia sesion de nuevo si el token expiro.');
+      this.feedback.set(
+        'No pudimos cargar tus mascotas. Inicia sesion de nuevo si el token expiro.',
+      );
     } finally {
       this.loading.set(false);
     }

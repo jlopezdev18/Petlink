@@ -156,6 +156,49 @@ create table if not exists public.pet_access_codes (
   foreign key (pet_id, owner_id) references public.pets(id, owner_id) on delete cascade
 );
 
+create table if not exists public.pet_qr_tags (
+  id uuid primary key default gen_random_uuid(),
+  pet_id uuid not null,
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  token text not null unique check (token ~ '^[A-Za-z0-9_-]{32,64}$'),
+  is_lost boolean not null default false,
+  lost_message text check (lost_message is null or char_length(lost_message) <= 500),
+  show_owner_phone boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (pet_id),
+  foreign key (pet_id, owner_id) references public.pets(id, owner_id) on delete cascade
+);
+
+create table if not exists public.pet_sighting_reports (
+  id uuid primary key default gen_random_uuid(),
+  qr_tag_id uuid not null references public.pet_qr_tags(id) on delete cascade,
+  status text not null default 'pending' check (status in ('pending', 'reviewed', 'dismissed')),
+  reporter_name text check (reporter_name is null or char_length(reporter_name) <= 100),
+  reporter_phone text check (reporter_phone is null or char_length(reporter_phone) <= 30),
+  message text not null check (char_length(message) between 5 and 1000),
+  location_description text check (
+    location_description is null or char_length(location_description) <= 300
+  ),
+  latitude numeric(9, 6) check (latitude is null or latitude between -90 and 90),
+  longitude numeric(9, 6) check (longitude is null or longitude between -180 and 180),
+  accuracy_meters numeric(10, 2) check (
+    accuracy_meters is null or accuracy_meters between 0 and 100000
+  ),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check ((latitude is null) = (longitude is null)),
+  check (accuracy_meters is null or latitude is not null)
+);
+
+alter table public.pet_qr_tags
+add column if not exists show_owner_phone boolean not null default false;
+
+insert into public.pet_qr_tags (pet_id, owner_id, token)
+select pets.id, pets.owner_id, replace(gen_random_uuid()::text, '-', '')
+from public.pets
+on conflict (pet_id) do nothing;
+
 alter table public.pet_access_codes
 add column if not exists purpose text not null default 'caregiver';
 
@@ -281,6 +324,16 @@ create trigger set_pet_access_codes_updated_at
 before update on public.pet_access_codes
 for each row execute function public.set_updated_at();
 
+drop trigger if exists set_pet_qr_tags_updated_at on public.pet_qr_tags;
+create trigger set_pet_qr_tags_updated_at
+before update on public.pet_qr_tags
+for each row execute function public.set_updated_at();
+
+drop trigger if exists set_pet_sighting_reports_updated_at on public.pet_sighting_reports;
+create trigger set_pet_sighting_reports_updated_at
+before update on public.pet_sighting_reports
+for each row execute function public.set_updated_at();
+
 drop trigger if exists set_medications_updated_at on public.medications;
 create trigger set_medications_updated_at
 before update on public.medications
@@ -324,6 +377,9 @@ create index if not exists pet_access_codes_pet_id_idx on public.pet_access_code
 create index if not exists pet_access_codes_active_idx
   on public.pet_access_codes(code_hash, expires_at)
   where revoked_at is null;
+create index if not exists pet_qr_tags_owner_id_idx on public.pet_qr_tags(owner_id);
+create index if not exists pet_sighting_reports_qr_tag_status_created_idx
+  on public.pet_sighting_reports(qr_tag_id, status, created_at desc);
 create index if not exists medications_pet_id_idx on public.medications(pet_id);
 create index if not exists medication_logs_medication_id_idx on public.medication_logs(medication_id);
 create index if not exists medication_logs_scheduled_for_idx on public.medication_logs(scheduled_for);
@@ -340,6 +396,8 @@ alter table public.profiles enable row level security;
 alter table public.pets enable row level security;
 alter table public.pet_caregivers enable row level security;
 alter table public.pet_access_codes enable row level security;
+alter table public.pet_qr_tags enable row level security;
+alter table public.pet_sighting_reports enable row level security;
 alter table public.medications enable row level security;
 alter table public.medication_logs enable row level security;
 alter table public.prescriptions enable row level security;
@@ -360,6 +418,15 @@ grant select, insert, update, delete on
   public.reminders,
   public.pet_documents
 to authenticated;
+
+revoke all on table public.pet_qr_tags from anon;
+revoke all on table public.pet_sighting_reports from anon;
+revoke all on table public.pet_qr_tags from authenticated;
+revoke all on table public.pet_sighting_reports from authenticated;
+grant select, insert on public.pet_qr_tags to authenticated;
+grant update (is_lost, lost_message, show_owner_phone) on public.pet_qr_tags to authenticated;
+grant select on public.pet_sighting_reports to authenticated;
+grant update (status) on public.pet_sighting_reports to authenticated;
 
 drop policy if exists "profiles_select_own" on public.profiles;
 drop policy if exists "profiles_select_related" on public.profiles;
@@ -459,6 +526,81 @@ create policy "pet_access_codes_delete_owner"
 on public.pet_access_codes for delete
 to authenticated
 using (owner_id = (select auth.uid()));
+
+drop policy if exists "pet_qr_tags_select_owner" on public.pet_qr_tags;
+create policy "pet_qr_tags_select_owner"
+on public.pet_qr_tags for select
+to authenticated
+using (owner_id = (select auth.uid()));
+
+drop policy if exists "pet_qr_tags_insert_owner" on public.pet_qr_tags;
+create policy "pet_qr_tags_insert_owner"
+on public.pet_qr_tags for insert
+to authenticated
+with check (
+  owner_id = (select auth.uid())
+  and exists (
+    select 1 from public.pets
+    where pets.id = pet_qr_tags.pet_id
+      and pets.owner_id = (select auth.uid())
+  )
+);
+
+drop policy if exists "pet_qr_tags_update_owner" on public.pet_qr_tags;
+create policy "pet_qr_tags_update_owner"
+on public.pet_qr_tags for update
+to authenticated
+using (owner_id = (select auth.uid()))
+with check (owner_id = (select auth.uid()));
+
+drop policy if exists "pet_qr_tags_delete_owner" on public.pet_qr_tags;
+create policy "pet_qr_tags_delete_owner"
+on public.pet_qr_tags for delete
+to authenticated
+using (owner_id = (select auth.uid()));
+
+drop policy if exists "pet_sighting_reports_select_owner" on public.pet_sighting_reports;
+create policy "pet_sighting_reports_select_owner"
+on public.pet_sighting_reports for select
+to authenticated
+using (
+  exists (
+    select 1 from public.pet_qr_tags
+    where pet_qr_tags.id = pet_sighting_reports.qr_tag_id
+      and pet_qr_tags.owner_id = (select auth.uid())
+  )
+);
+
+drop policy if exists "pet_sighting_reports_update_owner" on public.pet_sighting_reports;
+create policy "pet_sighting_reports_update_owner"
+on public.pet_sighting_reports for update
+to authenticated
+using (
+  exists (
+    select 1 from public.pet_qr_tags
+    where pet_qr_tags.id = pet_sighting_reports.qr_tag_id
+      and pet_qr_tags.owner_id = (select auth.uid())
+  )
+)
+with check (
+  exists (
+    select 1 from public.pet_qr_tags
+    where pet_qr_tags.id = pet_sighting_reports.qr_tag_id
+      and pet_qr_tags.owner_id = (select auth.uid())
+  )
+);
+
+drop policy if exists "pet_sighting_reports_delete_owner" on public.pet_sighting_reports;
+create policy "pet_sighting_reports_delete_owner"
+on public.pet_sighting_reports for delete
+to authenticated
+using (
+  exists (
+    select 1 from public.pet_qr_tags
+    where pet_qr_tags.id = pet_sighting_reports.qr_tag_id
+      and pet_qr_tags.owner_id = (select auth.uid())
+  )
+);
 
 drop policy if exists "pets_select_own" on public.pets;
 drop policy if exists "pets_select_access" on public.pets;

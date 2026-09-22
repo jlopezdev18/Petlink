@@ -4,16 +4,17 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import joinedload
 
 from app.access import get_owned_pet_or_404, get_updatable_pet, has_pet_permission
 from app.api.profiles import get_or_create_profile
 from app.core.config import get_settings
 from app.dependencies import CurrentUserDep, DbSession
-from app.models import Pet, PetCaregiver
+from app.models import Pet, PetCaregiver, PetQrTag, PetSightingReport
 from app.schemas.pets import PetListResponse, PetResponse
 from app.services.storage import PetFileStorage
+from app.services.pet_tags import generate_unique_qr_token
 
 router = APIRouter(prefix="/pets", tags=["pets"])
 
@@ -83,6 +84,14 @@ def create_pet(
         notes=clean_optional_text(notes),
     )
     db.add(pet)
+    db.flush()
+    db.add(
+        PetQrTag(
+            pet_id=pet.id,
+            owner_id=current_user.id,
+            token=generate_unique_qr_token(db),
+        )
+    )
     db.commit()
     db.refresh(pet)
 
@@ -149,6 +158,16 @@ def delete_pet(pet_id: UUID, current_user: CurrentUserDep, db: DbSession) -> Non
 
 def serialize_pet(db: DbSession, pet: Pet, user_id: UUID, account_type: str = "owner") -> PetResponse:
     is_owner = pet.owner_id == user_id and account_type == "owner"
+    pending_sighting_reports = 0
+    if is_owner:
+        pending_sighting_reports = int(
+            db.scalar(
+                select(func.count(PetSightingReport.id))
+                .join(PetQrTag, PetQrTag.id == PetSightingReport.qr_tag_id)
+                .where(PetQrTag.pet_id == pet.id, PetSightingReport.status == "pending")
+            )
+            or 0
+        )
 
     return PetResponse(
         id=pet.id,
@@ -169,6 +188,7 @@ def serialize_pet(db: DbSession, pet: Pet, user_id: UUID, account_type: str = "o
         or (account_type == "owner" and has_pet_permission(db, user_id, pet.id, "can_update_pet")),
         canManageMedications=is_owner
         or (account_type == "owner" and has_pet_permission(db, user_id, pet.id, "can_manage_medications")),
+        pendingSightingReports=pending_sighting_reports,
     )
 
 
