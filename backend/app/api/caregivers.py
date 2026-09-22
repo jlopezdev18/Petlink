@@ -21,37 +21,15 @@ from app.schemas.caregivers import (
 
 router = APIRouter(prefix="/caregivers", tags=["caregivers"])
 
-PRESETS = {
-    "viewer": {
-        "role": "other",
-        "can_view_pet": True,
-        "can_update_pet": False,
-        "can_view_medications": False,
-        "can_manage_medications": False,
-        "can_view_records": False,
-        "can_manage_records": False,
-        "can_manage_reminders": False,
-    },
-    "caregiver": {
-        "role": "caregiver",
-        "can_view_pet": True,
-        "can_update_pet": False,
-        "can_view_medications": True,
-        "can_manage_medications": False,
-        "can_view_records": False,
-        "can_manage_records": False,
-        "can_manage_reminders": False,
-    },
-    "veterinarian": {
-        "role": "veterinarian",
-        "can_view_pet": True,
-        "can_update_pet": True,
-        "can_view_medications": True,
-        "can_manage_medications": True,
-        "can_view_records": False,
-        "can_manage_records": False,
-        "can_manage_reminders": False,
-    },
+CAREGIVER_PERMISSIONS = {
+    "role": "caregiver",
+    "can_view_pet": True,
+    "can_update_pet": False,
+    "can_view_medications": True,
+    "can_manage_medications": False,
+    "can_view_records": False,
+    "can_manage_records": False,
+    "can_manage_reminders": False,
 }
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
@@ -172,7 +150,7 @@ def create_caregiver(
             detail="This caregiver is already authorized for this pet.",
         )
 
-    apply_preset(caregiver, request.preset)
+    apply_caregiver_permissions(caregiver)
     caregiver.notes = clean_optional_text(request.notes)
     db.commit()
     db.refresh(caregiver)
@@ -192,7 +170,7 @@ def update_caregiver(
     if caregiver.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the owner can update access.")
 
-    apply_preset(caregiver, request.preset)
+    apply_caregiver_permissions(caregiver)
     caregiver.notes = clean_optional_text(request.notes)
     db.commit()
     db.refresh(caregiver)
@@ -222,29 +200,10 @@ def get_caregiver_or_404(db: DbSession, caregiver_id: UUID) -> PetCaregiver:
     return caregiver
 
 
-def apply_preset(caregiver: PetCaregiver, preset: str) -> None:
-    if preset == "veterinarian":
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Veterinarian access must be created with a temporary code.",
-        )
-
-    if preset not in PRESETS:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid caregiver preset.")
-
+def apply_caregiver_permissions(caregiver: PetCaregiver) -> None:
     caregiver.status = "accepted"
-    for field, value in PRESETS[preset].items():
+    for field, value in CAREGIVER_PERMISSIONS.items():
         setattr(caregiver, field, value)
-
-
-def preset_for(caregiver: PetCaregiver) -> str:
-    if caregiver.can_update_pet and caregiver.can_manage_medications:
-        return "veterinarian"
-
-    if caregiver.can_manage_medications:
-        return "caregiver"
-
-    return "viewer"
 
 
 def serialize_caregiver(caregiver: PetCaregiver, current_user_id: UUID) -> CaregiverResponse:
@@ -262,7 +221,7 @@ def serialize_caregiver(caregiver: PetCaregiver, current_user_id: UUID) -> Careg
         caregiverId=caregiver.caregiver_id,
         caregiverName=caregiver_profile.full_name,
         caregiverEmail=caregiver_profile.email,
-        preset=preset_for(caregiver),
+        preset="caregiver",
         status=caregiver.status,
         notes=caregiver.notes or "",
         isOwner=caregiver.owner_id == current_user_id,

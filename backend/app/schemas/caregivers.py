@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -9,12 +10,10 @@ class CaregiverCreateRequest(BaseModel):
 
     pet_id: UUID = Field(alias="petId")
     caregiver_email: str = Field(alias="caregiverEmail", min_length=3)
-    preset: str = "caregiver"
     notes: str | None = None
 
 
 class CaregiverUpdateRequest(BaseModel):
-    preset: str = "caregiver"
     notes: str | None = None
 
 
@@ -28,7 +27,7 @@ class CaregiverResponse(BaseModel):
     caregiverId: UUID
     caregiverName: str
     caregiverEmail: str | None
-    preset: str
+    preset: Literal["caregiver"]
     status: str
     notes: str
     isOwner: bool

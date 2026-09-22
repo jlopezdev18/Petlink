@@ -131,6 +131,61 @@ mat-form-field {
   width: 100%;
 }
 
+.edit-access-summary {
+  margin-bottom: 18px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--petlink-line);
+  border-radius: 8px;
+  background: var(--petlink-surface-muted);
+}
+
+.edit-access-summary > mat-icon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  color: var(--petlink-purple);
+  font-size: 30px;
+}
+
+.edit-access-summary div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.edit-access-summary strong,
+.edit-access-summary span {
+  overflow-wrap: anywhere;
+}
+
+.edit-access-summary strong {
+  color: var(--petlink-ink);
+  font-size: 15px;
+}
+
+.edit-access-summary span {
+  color: var(--petlink-muted);
+  font-size: 13px;
+}
+
+.edit-form-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.edit-feedback {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--petlink-danger);
+  background: var(--petlink-danger-bg);
+  color: var(--petlink-danger);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .form-actions,
 .card-actions {
   display: flex;

@@ -14,228 +14,307 @@
       <p class="feedback" role="status">{{ feedback() }}</p>
     }
 
-    @if (loading()) {
-      <section class="loading-state" aria-label="Cargando cuidadores">
-        <mat-progress-spinner diameter="46" mode="indeterminate" />
-      </section>
-    } @else {
-      @if (isOwnerMode()) {
-      <section class="tool-panel" aria-labelledby="caregiver-form-title">
-        <h2 id="caregiver-form-title">{{ editingCaregiver() ? 'Editar permisos' : 'Autorizar cuidador' }}</h2>
+    @if (editingCaregiver(); as caregiver) {
+      <app-entity-modal
+        title="Editar acceso"
+        [description]="
+          'Configura el acceso de ' + caregiver.caregiverName + ' a ' + caregiver.petName + '.'
+        "
+        (closed)="cancelEdit()"
+      >
+        <div class="edit-access-summary">
+          <mat-icon aria-hidden="true">person</mat-icon>
+          <div>
+            <strong>{{ caregiver.caregiverName }}</strong>
+            <span>{{ caregiver.caregiverEmail || 'Sin email' }} · {{ caregiver.petName }}</span>
+          </div>
+        </div>
 
-        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-          <div class="form-grid">
-            <mat-form-field appearance="outline" subscriptSizing="dynamic">
-              <mat-label>Mascota</mat-label>
-              <mat-icon matPrefix>pets</mat-icon>
-              <mat-select formControlName="petId">
-                @for (pet of ownerPets(); track pet.id) {
-                  <mat-option [value]="pet.id">{{ pet.name }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
+        @if (editFeedback()) {
+          <p class="edit-feedback" role="alert">{{ editFeedback() }}</p>
+        }
 
-            <mat-form-field appearance="outline" subscriptSizing="dynamic">
-              <mat-label>Email del cuidador</mat-label>
-              <mat-icon matPrefix>alternate_email</mat-icon>
-              <input matInput type="email" formControlName="caregiverEmail" autocomplete="off" />
-              @if (form.controls.caregiverEmail.hasError('required')) {
-                <mat-error>Ingresa un email.</mat-error>
-              } @else if (form.controls.caregiverEmail.hasError('email')) {
-                <mat-error>Email inválido.</mat-error>
-              }
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" subscriptSizing="dynamic">
-              <mat-label>Permisos</mat-label>
-              <mat-icon matPrefix>admin_panel_settings</mat-icon>
-              <mat-select formControlName="preset">
-                <mat-option value="viewer">Solo ver</mat-option>
-                <mat-option value="caregiver">Cuidador</mat-option>
-              </mat-select>
-            </mat-form-field>
-
+        <form id="caregiver-edit-form" [formGroup]="editForm" (ngSubmit)="submitEdit()" novalidate>
+          <div class="edit-form-grid">
             <mat-form-field appearance="outline" subscriptSizing="dynamic">
               <mat-label>Notas</mat-label>
               <mat-icon matPrefix>edit_note</mat-icon>
               <input matInput type="text" formControlName="notes" placeholder="Opcional" />
             </mat-form-field>
           </div>
-
-          <div class="form-actions">
-            @if (editingCaregiver()) {
-              <button mat-button type="button" [disabled]="submitting()" (click)="cancelEdit()">Cancelar</button>
-            }
-            <button mat-flat-button class="primary-action" type="submit" [disabled]="submitting() || ownerPets().length === 0">
-              <mat-icon>save</mat-icon>
-              <span>{{ editingCaregiver() ? 'Guardar permisos' : 'Autorizar' }}</span>
-            </button>
-          </div>
         </form>
-      </section>
 
-      <section class="tool-panel" aria-labelledby="access-code-form-title">
-        <div class="panel-heading">
-          <div>
-            <h2 id="access-code-form-title">Codigo temporal</h2>
-            <p>Comparte acceso de solo lectura para cuidar medicamentos sin registro.</p>
-          </div>
+        <div modal-actions>
+          <button mat-button type="button" [disabled]="submitting()" (click)="cancelEdit()">
+            Cancelar
+          </button>
+          <button
+            mat-flat-button
+            class="primary-action"
+            type="submit"
+            form="caregiver-edit-form"
+            [disabled]="submitting() || editForm.invalid"
+          >
+            <mat-icon>save</mat-icon>
+            <span>Guardar cambios</span>
+          </button>
         </div>
+      </app-entity-modal>
+    }
 
-        <form [formGroup]="accessCodeForm" (ngSubmit)="createAccessCode()" novalidate>
-          <div class="form-grid compact-grid">
-            <mat-form-field appearance="outline" subscriptSizing="dynamic">
-              <mat-label>Mascota</mat-label>
-              <mat-icon matPrefix>pets</mat-icon>
-              <mat-select formControlName="petId">
-                @for (pet of ownerPets(); track pet.id) {
-                  <mat-option [value]="pet.id">{{ pet.name }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" subscriptSizing="dynamic">
-              <mat-label>Tipo</mat-label>
-              <mat-icon matPrefix>badge</mat-icon>
-              <mat-select formControlName="purpose">
-                <mat-option value="caregiver">Cuidador</mat-option>
-                <mat-option value="veterinarian">Veterinario</mat-option>
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" subscriptSizing="dynamic">
-              <mat-label>Vence en</mat-label>
-              <mat-icon matPrefix>timer</mat-icon>
-              <mat-select formControlName="duration">
-                <mat-option value="1h">1 hora</mat-option>
-                <mat-option value="24h">24 horas</mat-option>
-                <mat-option value="3d">3 dias</mat-option>
-                <mat-option value="7d">7 dias</mat-option>
-              </mat-select>
-            </mat-form-field>
-          </div>
-
-          <div class="form-actions">
-            <button mat-flat-button class="primary-action" type="submit" [disabled]="submitting() || ownerPets().length === 0">
-              <mat-icon>vpn_key</mat-icon>
-              <span>Crear codigo</span>
-            </button>
-          </div>
-        </form>
-
-        @if (createdAccessCode()) {
-          <div class="code-reveal" role="status">
-            <div>
-              <span>{{ accessCodePurposeLabel(createdAccessCode()!.purpose) }} temporal</span>
-              <strong>{{ createdAccessCode()?.code }}</strong>
-              <a class="guest-link" [href]="guestAccessUrl(createdAccessCode()!)" target="_blank" rel="noreferrer">
-                Abrir acceso
-              </a>
-            </div>
-            <img class="qr-code" [src]="qrCodeUrl(createdAccessCode()!)" alt="QR de acceso temporal" />
-            <button mat-stroked-button type="button" (click)="copyCreatedCode()">
-              <mat-icon>content_copy</mat-icon>
-              <span>Copiar</span>
-            </button>
-          </div>
-        }
+    @if (loading()) {
+      <section class="loading-state" aria-label="Cargando cuidadores">
+        <mat-progress-spinner diameter="46" mode="indeterminate" />
       </section>
+    } @else {
+      @if (isOwnerMode()) {
+        <section class="tool-panel" aria-labelledby="caregiver-form-title">
+          <h2 id="caregiver-form-title">Autorizar cuidador</h2>
 
-      <section class="list-section" aria-label="Codigos temporales">
-        <h2>Codigos temporales</h2>
+          <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+            <div class="form-grid">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Mascota</mat-label>
+                <mat-icon matPrefix>pets</mat-icon>
+                <mat-select formControlName="petId">
+                  @for (pet of ownerPets(); track pet.id) {
+                    <mat-option [value]="pet.id">{{ pet.name }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
 
-        <div class="item-grid">
-          @for (accessCode of accessCodes(); track accessCode.id) {
-            <article class="item-card compact">
-              <div class="card-heading">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Email del cuidador</mat-label>
+                <mat-icon matPrefix>alternate_email</mat-icon>
+                <input matInput type="email" formControlName="caregiverEmail" autocomplete="off" />
+                @if (form.controls.caregiverEmail.hasError('required')) {
+                  <mat-error>Ingresa un email.</mat-error>
+                } @else if (form.controls.caregiverEmail.hasError('email')) {
+                  <mat-error>Email inválido.</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Notas</mat-label>
+                <mat-icon matPrefix>edit_note</mat-icon>
+                <input matInput type="text" formControlName="notes" placeholder="Opcional" />
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button
+                mat-flat-button
+                class="primary-action"
+                type="submit"
+                [disabled]="submitting() || ownerPets().length === 0"
+              >
+                <mat-icon>save</mat-icon>
+                <span>Autorizar</span>
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section class="tool-panel" aria-labelledby="access-code-form-title">
+          <div class="panel-heading">
+            <div>
+              <h2 id="access-code-form-title">Codigo temporal</h2>
+              <p>Comparte acceso de solo lectura para cuidar medicamentos sin registro.</p>
+            </div>
+          </div>
+
+          <form [formGroup]="accessCodeForm" (ngSubmit)="createAccessCode()" novalidate>
+            <div class="form-grid compact-grid">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Mascota</mat-label>
+                <mat-icon matPrefix>pets</mat-icon>
+                <mat-select formControlName="petId">
+                  @for (pet of ownerPets(); track pet.id) {
+                    <mat-option [value]="pet.id">{{ pet.name }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Tipo</mat-label>
+                <mat-icon matPrefix>badge</mat-icon>
+                <mat-select formControlName="purpose">
+                  <mat-option value="caregiver">Cuidador</mat-option>
+                  <mat-option value="veterinarian">Veterinario</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Vence en</mat-label>
+                <mat-icon matPrefix>timer</mat-icon>
+                <mat-select formControlName="duration">
+                  <mat-option value="1h">1 hora</mat-option>
+                  <mat-option value="24h">24 horas</mat-option>
+                  <mat-option value="3d">3 dias</mat-option>
+                  <mat-option value="7d">7 dias</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="form-actions">
+              <button
+                mat-flat-button
+                class="primary-action"
+                type="submit"
+                [disabled]="submitting() || ownerPets().length === 0"
+              >
+                <mat-icon>vpn_key</mat-icon>
+                <span>Crear codigo</span>
+              </button>
+            </div>
+          </form>
+
+          @if (createdAccessCode()) {
+            <div class="code-reveal" role="status">
+              <div>
+                <span>{{ accessCodePurposeLabel(createdAccessCode()!.purpose) }} temporal</span>
+                <strong>{{ createdAccessCode()?.code }}</strong>
+                <a
+                  class="guest-link"
+                  [href]="guestAccessUrl(createdAccessCode()!)"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Abrir acceso
+                </a>
+              </div>
+              <img
+                class="qr-code"
+                [src]="qrCodeUrl(createdAccessCode()!)"
+                alt="QR de acceso temporal"
+              />
+              <button mat-stroked-button type="button" (click)="copyCreatedCode()">
+                <mat-icon>content_copy</mat-icon>
+                <span>Copiar</span>
+              </button>
+            </div>
+          }
+        </section>
+
+        <section class="list-section" aria-label="Codigos temporales">
+          <h2>Codigos temporales</h2>
+
+          <div class="item-grid">
+            @for (accessCode of accessCodes(); track accessCode.id) {
+              <article class="item-card compact">
+                <div class="card-heading">
+                  <div>
+                    <span class="pet-ownership-badge">
+                      <mat-icon aria-hidden="true">home</mat-icon>
+                      Mascota propia
+                    </span>
+                    <h3>{{ accessCode.petName }}</h3>
+                    <p>
+                      {{ accessCodePurposeLabel(accessCode.purpose) }} -
+                      {{ accessCodeStatusLabel(accessCode) }}
+                    </p>
+                  </div>
+                  <span class="status-pill" [class.inactive-pill]="!accessCode.isActive">
+                    {{ accessCodeStatusLabel(accessCode) }}
+                  </span>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Vence</dt>
+                    <dd>{{ accessCode.expiresAt | date: 'short' }}</dd>
+                  </div>
+                  <div>
+                    <dt>Ultimo uso</dt>
+                    <dd>
+                      {{
+                        accessCode.lastUsedAt ? (accessCode.lastUsedAt | date: 'short') : 'Sin uso'
+                      }}
+                    </dd>
+                  </div>
+                </dl>
+                @if (accessCode.isActive) {
+                  <div class="card-actions">
+                    <button
+                      mat-button
+                      type="button"
+                      class="danger-action"
+                      [disabled]="submitting()"
+                      (click)="revokeAccessCode(accessCode)"
+                    >
+                      <mat-icon>block</mat-icon>
+                      <span>Revocar</span>
+                    </button>
+                  </div>
+                }
+              </article>
+            } @empty {
+              <div class="empty-state">
+                <mat-icon>vpn_key_off</mat-icon>
+                <h2>No hay codigos temporales</h2>
+                <p>Crea un codigo para cuidadores que no necesitan registrarse.</p>
+              </div>
+            }
+          </div>
+        </section>
+
+        <section class="list-section" aria-label="Cuidadores autorizados">
+          <h2>Accesos otorgados</h2>
+
+          <div class="item-grid">
+            @for (caregiver of ownedAccess(); track caregiver.id) {
+              <article class="item-card">
                 <div>
                   <span class="pet-ownership-badge">
                     <mat-icon aria-hidden="true">home</mat-icon>
                     Mascota propia
                   </span>
-                  <h3>{{ accessCode.petName }}</h3>
-                  <p>{{ accessCodePurposeLabel(accessCode.purpose) }} - {{ accessCodeStatusLabel(accessCode) }}</p>
+                  <h3>{{ caregiver.caregiverName }}</h3>
+                  <p>{{ caregiver.caregiverEmail || 'Sin email' }}</p>
                 </div>
-                <span class="status-pill" [class.inactive-pill]="!accessCode.isActive">
-                  {{ accessCodeStatusLabel(accessCode) }}
-                </span>
-              </div>
-              <dl>
-                <div>
-                  <dt>Vence</dt>
-                  <dd>{{ accessCode.expiresAt | date: 'short' }}</dd>
-                </div>
-                <div>
-                  <dt>Ultimo uso</dt>
-                  <dd>{{ accessCode.lastUsedAt ? (accessCode.lastUsedAt | date: 'short') : 'Sin uso' }}</dd>
-                </div>
-              </dl>
-              @if (accessCode.isActive) {
+                <dl>
+                  <div>
+                    <dt>Mascota</dt>
+                    <dd>{{ caregiver.petName }}</dd>
+                  </div>
+                  <div>
+                    <dt>Rol</dt>
+                    <dd>Cuidador</dd>
+                  </div>
+                </dl>
+                @if (caregiver.notes) {
+                  <p class="notes">{{ caregiver.notes }}</p>
+                }
                 <div class="card-actions">
-                  <button mat-button type="button" class="danger-action" [disabled]="submitting()" (click)="revokeAccessCode(accessCode)">
-                    <mat-icon>block</mat-icon>
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="submitting()"
+                    (click)="editCaregiver(caregiver)"
+                  >
+                    <mat-icon>edit</mat-icon>
+                    <span>Editar</span>
+                  </button>
+                  <button
+                    mat-button
+                    type="button"
+                    class="danger-action"
+                    [disabled]="submitting()"
+                    (click)="revokeCaregiver(caregiver)"
+                  >
+                    <mat-icon>person_remove</mat-icon>
                     <span>Revocar</span>
                   </button>
                 </div>
-              }
-            </article>
-          } @empty {
-            <div class="empty-state">
-              <mat-icon>vpn_key_off</mat-icon>
-              <h2>No hay codigos temporales</h2>
-              <p>Crea un codigo para cuidadores que no necesitan registrarse.</p>
-            </div>
-          }
-        </div>
-      </section>
-
-      <section class="list-section" aria-label="Cuidadores autorizados">
-        <h2>Accesos otorgados</h2>
-
-        <div class="item-grid">
-          @for (caregiver of ownedAccess(); track caregiver.id) {
-            <article class="item-card">
-              <div>
-                <span class="pet-ownership-badge">
-                  <mat-icon aria-hidden="true">home</mat-icon>
-                  Mascota propia
-                </span>
-                <h3>{{ caregiver.caregiverName }}</h3>
-                <p>{{ caregiver.caregiverEmail || 'Sin email' }}</p>
+              </article>
+            } @empty {
+              <div class="empty-state">
+                <mat-icon>supervisor_account</mat-icon>
+                <h2>No hay cuidadores autorizados</h2>
+                <p>Agrega un usuario registrado para compartir el cuidado de una mascota.</p>
               </div>
-              <dl>
-                <div>
-                  <dt>Mascota</dt>
-                  <dd>{{ caregiver.petName }}</dd>
-                </div>
-                <div>
-                  <dt>Permisos</dt>
-                  <dd>{{ presetLabel(caregiver.preset) }}</dd>
-                </div>
-              </dl>
-              @if (caregiver.notes) {
-                <p class="notes">{{ caregiver.notes }}</p>
-              }
-              <div class="card-actions">
-                <button mat-stroked-button type="button" [disabled]="submitting()" (click)="editCaregiver(caregiver)">
-                  <mat-icon>edit</mat-icon>
-                  <span>Editar</span>
-                </button>
-                <button mat-button type="button" class="danger-action" [disabled]="submitting()" (click)="revokeCaregiver(caregiver)">
-                  <mat-icon>person_remove</mat-icon>
-                  <span>Revocar</span>
-                </button>
-              </div>
-            </article>
-          } @empty {
-            <div class="empty-state">
-              <mat-icon>supervisor_account</mat-icon>
-              <h2>No hay cuidadores autorizados</h2>
-              <p>Agrega un usuario registrado para compartir el cuidado de una mascota.</p>
-            </div>
-          }
-        </div>
-      </section>
+            }
+          </div>
+        </section>
       }
 
       @if (receivedAccess().length > 0) {
@@ -251,10 +330,16 @@
                     Mascota asignada
                   </span>
                   <h3>{{ caregiver.petName }}</h3>
-                  <p>Autorizada por {{ caregiver.ownerName }} - {{ presetLabel(caregiver.preset) }}</p>
+                  <p>Autorizada por {{ caregiver.ownerName }} - Cuidador</p>
                 </div>
                 <div class="card-actions">
-                  <button mat-button type="button" class="danger-action" [disabled]="submitting()" (click)="revokeCaregiver(caregiver)">
+                  <button
+                    mat-button
+                    type="button"
+                    class="danger-action"
+                    [disabled]="submitting()"
+                    (click)="revokeCaregiver(caregiver)"
+                  >
                     <mat-icon>logout</mat-icon>
                     <span>Salir</span>
                   </button>
@@ -268,7 +353,9 @@
           <div class="empty-state">
             <mat-icon>pets</mat-icon>
             <h2>No tienes mascotas asignadas</h2>
-            <p>Cuando un propietario te autorice como cuidador, veras aqui sus mascotas compartidas.</p>
+            <p>
+              Cuando un propietario te autorice como cuidador, veras aqui sus mascotas compartidas.
+            </p>
           </div>
         </section>
       }
