@@ -1,137 +1,130 @@
 <app-auth-layout>
   <section class="auth-card">
-  <div class="card-heading">
-    <div class="card-brand">
-      <span class="brand-mark" aria-hidden="true">
-        <mat-icon class="heart-icon">favorite_border</mat-icon>
-        <mat-icon class="pet-icon">pets</mat-icon>
-      </span>
-      <span>PetLink</span>
-    </div>
-    <h1>Crea tu cuenta PetLink</h1>
-    <p>Empieza a cuidar y organizar la información de tus mascotas.</p>
-  </div>
-
-  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-    <label class="field-label" for="register-name">Nombre completo</label>
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
-      <mat-icon matPrefix>person_outline</mat-icon>
-      <input
-        id="register-name"
-        matInput
-        type="text"
-        formControlName="name"
-        placeholder="Ingresa tu nombre completo"
-        autocomplete="name"
-      />
-      @if (form.controls.name.invalid && form.controls.name.touched) {
-        <mat-error>Ingresa tu nombre completo.</mat-error>
-      }
-    </mat-form-field>
-
-    <label class="field-label" for="register-email">Correo electrónico</label>
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
-      <mat-icon matPrefix>mail_outline</mat-icon>
-      <input
-        id="register-email"
-        matInput
-        type="email"
-        formControlName="email"
-        placeholder="Ingresa tu correo electrónico"
-        autocomplete="email"
-      />
-      @if (form.controls.email.hasError('required')) {
-        <mat-error>Ingresa tu correo electrónico.</mat-error>
-      } @else if (form.controls.email.hasError('email')) {
-        <mat-error>Ingresa un correo válido.</mat-error>
-      }
-    </mat-form-field>
-
-    <div class="password-grid">
-      <div class="field-block">
-        <label class="field-label" for="register-password">Contraseña</label>
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-icon matPrefix>lock_outline</mat-icon>
-          <input
-            id="register-password"
-            matInput
-            [type]="hidePassword() ? 'password' : 'text'"
-            formControlName="password"
-            placeholder="Mínimo 8 caracteres"
-            autocomplete="new-password"
-          />
-          <button
-            mat-icon-button
-            matSuffix
-            type="button"
-            [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
-            (click)="hidePassword.set(!hidePassword())"
-          >
-            <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
-          </button>
-          @if (form.controls.password.hasError('required')) {
-            <mat-error>Ingresa una contraseña.</mat-error>
-          } @else if (form.controls.password.hasError('minlength')) {
-            <mat-error>Usa al menos 8 caracteres.</mat-error>
-          }
-        </mat-form-field>
+    <div class="card-heading">
+      <div class="card-brand">
+        <span class="brand-mark" aria-hidden="true">
+          <mat-icon class="heart-icon">favorite_border</mat-icon>
+          <mat-icon class="pet-icon">pets</mat-icon>
+        </span>
+        <span>PetLink</span>
       </div>
-
-      <div class="field-block">
-        <label class="field-label" for="register-confirmation">Confirmar contraseña</label>
-        <mat-form-field appearance="outline" subscriptSizing="dynamic">
-          <mat-icon matPrefix>lock_reset</mat-icon>
-          <input
-            id="register-confirmation"
-            matInput
-            [type]="hideConfirmation() ? 'password' : 'text'"
-            formControlName="confirmation"
-            placeholder="Repite tu contraseña"
-            autocomplete="new-password"
-          />
-          <button
-            mat-icon-button
-            matSuffix
-            type="button"
-            [attr.aria-label]="hideConfirmation() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
-            (click)="hideConfirmation.set(!hideConfirmation())"
-          >
-            <mat-icon>{{ hideConfirmation() ? 'visibility_off' : 'visibility' }}</mat-icon>
-          </button>
-          @if (form.controls.confirmation.hasError('required')) {
-            <mat-error>Confirma tu contraseña.</mat-error>
-          } @else if (form.hasError('passwordMismatch') && form.controls.confirmation.touched) {
-            <mat-error>Las contraseñas no coinciden.</mat-error>
-          }
-        </mat-form-field>
-      </div>
+      <h1>Crea tu cuenta PetLink</h1>
+      <p>Empieza a cuidar y organizar la información de tus mascotas.</p>
     </div>
 
-    <mat-checkbox class="terms" formControlName="acceptTerms">
-      Acepto los términos y la política de privacidad
-    </mat-checkbox>
-    @if (form.controls.acceptTerms.invalid && form.controls.acceptTerms.touched) {
-      <p class="field-error">Debes aceptar los términos para continuar.</p>
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <label class="field-label" for="register-name">Nombre completo</label>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-icon matPrefix>person_outline</mat-icon>
+        <input
+          id="register-name"
+          matInput
+          type="text"
+          formControlName="name"
+          placeholder="Ingresa tu nombre completo"
+          autocomplete="name"
+        />
+        @if (form.controls.name.invalid && form.controls.name.touched) {
+          <mat-error>Ingresa tu nombre completo.</mat-error>
+        }
+      </mat-form-field>
+
+      <label class="field-label" for="register-email">Correo electrónico</label>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-icon matPrefix>mail_outline</mat-icon>
+        <input
+          id="register-email"
+          matInput
+          type="email"
+          formControlName="email"
+          placeholder="Ingresa tu correo electrónico"
+          autocomplete="email"
+        />
+        @if (form.controls.email.hasError('required')) {
+          <mat-error>Ingresa tu correo electrónico.</mat-error>
+        } @else if (form.controls.email.hasError('email')) {
+          <mat-error>Ingresa un correo válido.</mat-error>
+        }
+      </mat-form-field>
+
+      <div class="password-grid">
+        <div class="field-block">
+          <label class="field-label" for="register-password">Contraseña</label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-icon matPrefix>lock_outline</mat-icon>
+            <input
+              id="register-password"
+              matInput
+              [type]="hidePassword() ? 'password' : 'text'"
+              formControlName="password"
+              placeholder="Mínimo 8 caracteres"
+              autocomplete="new-password"
+            />
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+              (click)="hidePassword.set(!hidePassword())"
+            >
+              <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (form.controls.password.hasError('required')) {
+              <mat-error>Ingresa una contraseña.</mat-error>
+            } @else if (form.controls.password.hasError('minlength')) {
+              <mat-error>Usa al menos 8 caracteres.</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="field-block">
+          <label class="field-label" for="register-confirmation">Confirmar contraseña</label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-icon matPrefix>lock_reset</mat-icon>
+            <input
+              id="register-confirmation"
+              matInput
+              [type]="hideConfirmation() ? 'password' : 'text'"
+              formControlName="confirmation"
+              placeholder="Repite tu contraseña"
+              autocomplete="new-password"
+            />
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              [attr.aria-label]="hideConfirmation() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+              (click)="hideConfirmation.set(!hideConfirmation())"
+            >
+              <mat-icon>{{ hideConfirmation() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (form.controls.confirmation.hasError('required')) {
+              <mat-error>Confirma tu contraseña.</mat-error>
+            } @else if (form.hasError('passwordMismatch') && form.controls.confirmation.touched) {
+              <mat-error>Las contraseñas no coinciden.</mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </div>
+
+      <div class="account-type" role="group" aria-label="Tipo de cuenta">
+        <span>Crear cuenta como</span>
+        <mat-radio-group formControlName="accountType">
+          <mat-radio-button value="owner">Propietario</mat-radio-button>
+          <mat-radio-button value="caregiver">Cuidador</mat-radio-button>
+        </mat-radio-group>
+      </div>
+
+      <button mat-flat-button class="primary-action" type="submit">Crear cuenta</button>
+    </form>
+
+    @if (feedback()) {
+      <p class="feedback" role="status">{{ feedback() }}</p>
     }
 
-    <div class="account-type" role="group" aria-label="Tipo de cuenta">
-      <span>Crear cuenta como</span>
-      <mat-radio-group formControlName="accountType">
-        <mat-radio-button value="owner">Propietario</mat-radio-button>
-        <mat-radio-button value="caregiver">Cuidador</mat-radio-button>
-      </mat-radio-group>
+    <div class="auth-switch">
+      <span>¿Ya tienes una cuenta?</span>
+      <a class="text-action strong" routerLink="/login">Inicia sesión</a>
     </div>
-
-    <button mat-flat-button class="primary-action" type="submit">Crear cuenta</button>
-  </form>
-
-  @if (feedback()) {
-    <p class="feedback" role="status">{{ feedback() }}</p>
-  }
-
-  <div class="auth-switch">
-    <span>¿Ya tienes una cuenta?</span>
-    <a class="text-action strong" routerLink="/login">Inicia sesión</a>
-  </div>
   </section>
 </app-auth-layout>

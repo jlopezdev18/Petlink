@@ -21,6 +21,10 @@ interface AuthResponse {
   };
 }
 
+interface AuthMessageResponse {
+  message: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -45,11 +49,20 @@ export class AuthService {
 
   login(email: string, password: string, accountType: string): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>(`${environment.apiUrl}/auth/login`, { email, password, account_type: accountType })
+      .post<AuthResponse>(`${environment.apiUrl}/auth/login`, {
+        email,
+        password,
+        account_type: accountType,
+      })
       .pipe(tap((response) => this.storeSession(response, accountType)));
   }
 
-  register(fullName: string, email: string, password: string, accountType: string): Observable<AuthResponse> {
+  register(
+    fullName: string,
+    email: string,
+    password: string,
+    accountType: string,
+  ): Observable<AuthResponse> {
     return this.http
       .post<AuthResponse>(`${environment.apiUrl}/auth/register`, {
         full_name: fullName,
@@ -58,6 +71,19 @@ export class AuthService {
         account_type: accountType,
       })
       .pipe(tap((response) => this.storeSession(response, accountType)));
+  }
+
+  requestPasswordRecovery(email: string): Observable<AuthMessageResponse> {
+    return this.http.post<AuthMessageResponse>(`${environment.apiUrl}/auth/password-recovery`, {
+      email,
+    });
+  }
+
+  updatePassword(accessToken: string, password: string): Observable<AuthMessageResponse> {
+    return this.http.put<AuthMessageResponse>(`${environment.apiUrl}/auth/password`, {
+      accessToken,
+      password,
+    });
   }
 
   logout(): void {

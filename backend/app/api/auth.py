@@ -3,7 +3,14 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.config import Settings, get_settings
-from app.schemas.auth import AuthResponse, LoginRequest, RegisterRequest
+from app.schemas.auth import (
+    AuthMessageResponse,
+    AuthResponse,
+    LoginRequest,
+    PasswordRecoveryRequest,
+    PasswordUpdateRequest,
+    RegisterRequest,
+)
 from app.services.supabase_auth import SupabaseAuthClient, SupabaseAuthError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -54,6 +61,53 @@ def login_user(
         raise HTTPException(status_code=status_code, detail=error.message) from error
 
     return AuthResponse(message="User logged in successfully.", data=data)
+
+
+@router.post(
+    "/password-recovery",
+    response_model=AuthMessageResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def request_password_recovery(
+    request: PasswordRecoveryRequest,
+    auth_client: Annotated[SupabaseAuthClient, Depends(get_auth_client)],
+    settings: SettingsDep,
+) -> AuthMessageResponse:
+    redirect_url = settings.password_reset_redirect_url.strip()
+    if not redirect_url:
+        if not settings.frontend_origins:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Password recovery redirect is not configured.",
+            )
+        redirect_url = f"{settings.frontend_origins[0].rstrip('/')}/restablecer-contrasena"
+
+    try:
+        auth_client.send_password_recovery(request.email.strip().lower(), redirect_url)
+    except SupabaseAuthError as error:
+        raise HTTPException(status_code=error.status_code, detail=error.message) from error
+
+    return AuthMessageResponse(
+        message="If the account exists, a password recovery email has been sent."
+    )
+
+
+@router.put("/password", response_model=AuthMessageResponse)
+def update_password(
+    request: PasswordUpdateRequest,
+    auth_client: Annotated[SupabaseAuthClient, Depends(get_auth_client)],
+) -> AuthMessageResponse:
+    try:
+        auth_client.update_password(request.access_token, request.password)
+    except SupabaseAuthError as error:
+        status_code = (
+            status.HTTP_401_UNAUTHORIZED
+            if error.status_code in {400, 401, 403}
+            else error.status_code
+        )
+        raise HTTPException(status_code=status_code, detail=error.message) from error
+
+    return AuthMessageResponse(message="Password updated successfully.")
 
 
 def clean_account_type(value: str) -> str:

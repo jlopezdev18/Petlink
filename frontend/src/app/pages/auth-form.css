@@ -133,7 +133,7 @@ mat-form-field {
   margin: -2px 0 13px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 16px;
 }
 
@@ -195,16 +195,6 @@ mat-form-field {
   background: var(--petlink-purple-dark) !important;
 }
 
-.terms {
-  margin: -3px 0 2px;
-}
-
-.field-error {
-  margin: -2px 0 8px 16px;
-  color: var(--petlink-danger);
-  font-size: 12px;
-}
-
 .feedback {
   margin: 14px 0 0;
   padding: 10px 12px;
@@ -213,6 +203,51 @@ mat-form-field {
   color: var(--petlink-ink);
   font-size: 12px;
   line-height: 1.4;
+}
+
+.recovery-sent {
+  min-height: 150px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.recovery-sent mat-icon {
+  width: 40px;
+  height: 40px;
+  color: var(--petlink-teal);
+  font-size: 40px;
+}
+
+.recovery-sent h2 {
+  margin: 9px 0 5px;
+  color: var(--petlink-ink);
+  font-size: 18px;
+}
+
+.recovery-sent p {
+  max-width: 360px;
+  margin: 0;
+  color: var(--petlink-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.recovery-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--petlink-danger);
+  background: var(--petlink-danger-bg);
+  color: var(--petlink-danger);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.modal-primary-action {
+  border-radius: 6px;
+  background: var(--petlink-purple) !important;
+  color: #ffffff !important;
+  font-weight: 700;
 }
 
 .auth-switch {

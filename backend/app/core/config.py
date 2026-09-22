@@ -23,6 +23,7 @@ class Settings:
         or os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
     )
     database_url: str = os.getenv("DATABASE_URL", "")
+    password_reset_redirect_url: str = os.getenv("PASSWORD_RESET_REDIRECT_URL", "")
     pet_files_bucket: str = os.getenv("PET_FILES_BUCKET", "pet-files")
     signed_url_expires_seconds: int = int(os.getenv("SIGNED_URL_EXPIRES_SECONDS", "3600"))
     frontend_origins: list[str] = [

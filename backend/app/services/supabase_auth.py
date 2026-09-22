@@ -1,5 +1,6 @@
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 import json
@@ -37,7 +38,29 @@ class SupabaseAuthClient:
             },
         )
 
+    def send_password_recovery(self, email: str, redirect_to: str) -> dict[str, Any]:
+        query = urlencode({"redirect_to": redirect_to})
+        return self._post(f"/auth/v1/recover?{query}", {"email": email})
+
+    def update_password(self, access_token: str, password: str) -> dict[str, Any]:
+        return self._request(
+            "/auth/v1/user",
+            {"password": password},
+            method="PUT",
+            access_token=access_token,
+        )
+
     def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._request(path, payload, method="POST")
+
+    def _request(
+        self,
+        path: str,
+        payload: dict[str, Any],
+        *,
+        method: str,
+        access_token: str | None = None,
+    ) -> dict[str, Any]:
         if not self.settings.supabase_url or not self.settings.supabase_publishable_key:
             raise SupabaseAuthError(
                 status_code=500,
@@ -50,15 +73,16 @@ class SupabaseAuthClient:
             data=body,
             headers={
                 "apikey": self.settings.supabase_publishable_key,
-                "Authorization": f"Bearer {self.settings.supabase_publishable_key}",
+                "Authorization": f"Bearer {access_token or self.settings.supabase_publishable_key}",
                 "Content-Type": "application/json",
             },
-            method="POST",
+            method=method,
         )
 
         try:
             with urlopen(request, timeout=15) as response:
-                return json.loads(response.read().decode("utf-8"))
+                raw_body = response.read().decode("utf-8")
+                return json.loads(raw_body) if raw_body else {}
         except HTTPError as error:
             detail = self._read_error(error)
             raise SupabaseAuthError(error.code, detail) from error

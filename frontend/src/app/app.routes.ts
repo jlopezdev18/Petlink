@@ -12,6 +12,12 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/register/register').then((page) => page.RegisterPage),
   },
   {
+    path: 'restablecer-contrasena',
+    title: 'Restablecer contraseña | PetLink',
+    loadComponent: () =>
+      import('./pages/reset-password/reset-password').then((page) => page.ResetPasswordPage),
+  },
+  {
     path: 'acceso-cuidador',
     loadComponent: () =>
       import('./pages/guest-access/guest-access').then((page) => page.GuestAccessPage),

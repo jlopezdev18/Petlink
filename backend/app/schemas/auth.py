@@ -16,6 +16,19 @@ class LoginRequest(BaseModel):
     account_type: str = Field(default="owner")
 
 
+class PasswordRecoveryRequest(BaseModel):
+    email: str = Field(min_length=3)
+
+
+class PasswordUpdateRequest(BaseModel):
+    access_token: str = Field(alias="accessToken", min_length=20)
+    password: str = Field(min_length=8)
+
+
+class AuthMessageResponse(BaseModel):
+    message: str
+
+
 class AuthResponse(BaseModel):
     message: str
     data: dict[str, Any]

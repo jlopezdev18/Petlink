@@ -73,6 +73,7 @@ Abre `http://localhost:4200` para comprobar la instalacion y el funcionamiento s
 - `SUPABASE_URL`: URL del proyecto, por ejemplo `https://uimxlgudpxdtbkujngxh.supabase.co`.
 - `SUPABASE_PUBLISHABLE_KEY`: se usa para login, registro y validar el JWT recibido por FastAPI.
 - `SUPABASE_SECRET_KEY`: solo backend. Se usa para crear URLs firmadas y manejar fotos privadas en Storage.
+- `PASSWORD_RESET_REDIRECT_URL`: URL publica que recibe los enlaces de recuperacion, por ejemplo `https://app.petlink.com/restablecer-contrasena`. Debe estar autorizada en Supabase Auth.
 - `PET_FILES_BUCKET`: bucket privado para fotos de mascotas. Por defecto: `pet-files`.
 - Frontend desarrollo: `frontend/src/environments/environment.ts`.
 - Frontend produccion: `frontend/src/environments/environment.prod.ts`.

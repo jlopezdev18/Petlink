@@ -19,6 +19,7 @@ Set these values in `.env`:
 ```ini
 SUPABASE_URL=https://uimxlgudpxdtbkujngxh.supabase.co
 SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+PASSWORD_RESET_REDIRECT_URL=http://localhost:4200/restablecer-contrasena
 ```
 
 Use the public publishable key for these endpoints. Do not use the service role key for login/register requests.
@@ -72,6 +73,12 @@ Content-Type: application/json
 ```
 
 Successful login returns Supabase session data, including `access_token` and `refresh_token`.
+
+### Password recovery
+
+`POST /auth/password-recovery` sends a Supabase recovery email. The link returns to `PASSWORD_RESET_REDIRECT_URL`, which must also be listed in the Supabase Auth redirect URLs.
+
+`PUT /auth/password` receives the recovery access token and the new password, then updates the authenticated Supabase user.
 
 ## How It Works
 

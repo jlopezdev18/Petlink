@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -11,8 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatRadioModule } from '@angular/material/radio';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '../../core/auth.service';
@@ -25,7 +24,7 @@ const passwordsMatch: ValidatorFn = (control: AbstractControl): ValidationErrors
 };
 
 @Component({
-  selector: 'app-register-page',
+  selector: 'app-reset-password-page',
   imports: [
     AuthLayout,
     ReactiveFormsModule,
@@ -33,64 +32,67 @@ const passwordsMatch: ValidatorFn = (control: AbstractControl): ValidationErrors
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    MatRadioModule,
     RouterLink,
   ],
-  templateUrl: './register.html',
-  styleUrl: '../auth-form.css',
+  templateUrl: './reset-password.html',
+  styleUrls: ['../auth-form.css', './reset-password.css'],
 })
-export class RegisterPage {
+export class ResetPasswordPage {
   private readonly authService = inject(AuthService);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly recoveryToken = signal(
+    this.route.snapshot.queryParamMap.get('access_token') ?? '',
+  );
+  private readonly recoveryType = this.route.snapshot.queryParamMap.get('type');
 
   protected readonly hidePassword = signal(true);
   protected readonly hideConfirmation = signal(true);
-  protected readonly feedback = signal('');
   protected readonly submitting = signal(false);
+  protected readonly success = signal(false);
+  protected readonly feedback = signal('');
+  protected readonly hasValidRecoveryToken = computed(
+    () => Boolean(this.recoveryToken()) && this.recoveryType === 'recovery',
+  );
   protected readonly form = this.formBuilder.nonNullable.group(
     {
-      name: ['', [Validators.required, Validators.minLength(2)]],
-      email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmation: ['', Validators.required],
-      accountType: ['owner'],
     },
     { validators: passwordsMatch },
   );
+
+  constructor() {
+    if (this.recoveryToken()) {
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: {},
+        replaceUrl: true,
+      });
+    }
+  }
 
   protected async submit(): Promise<void> {
     this.feedback.set('');
     this.form.markAllAsTouched();
 
-    if (this.form.invalid || this.submitting()) {
+    if (this.form.invalid || this.submitting() || !this.hasValidRecoveryToken()) {
       return;
     }
 
     this.submitting.set(true);
 
     try {
-      const account = this.form.getRawValue();
       await firstValueFrom(
-        this.authService.register(
-          account.name,
-          account.email,
-          account.password,
-          account.accountType,
-        ),
+        this.authService.updatePassword(this.recoveryToken(), this.form.getRawValue().password),
       );
-
-      if (this.authService.accessToken) {
-        await this.router.navigate([
-          account.accountType === 'caregiver' ? '/medicamentos' : '/inicio',
-        ]);
-      } else {
-        this.feedback.set(
-          'Cuenta creada. Revisa tu correo para confirmar el registro antes de iniciar sesion.',
-        );
-      }
+      this.recoveryToken.set('');
+      this.success.set(true);
     } catch {
-      this.feedback.set('No pudimos crear la cuenta. Revisa los datos e intenta de nuevo.');
+      this.feedback.set(
+        'El enlace vencio o ya fue utilizado. Solicita uno nuevo desde el inicio de sesion.',
+      );
     } finally {
       this.submitting.set(false);
     }
