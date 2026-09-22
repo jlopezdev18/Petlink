@@ -1,0 +1,150 @@
+<main class="tag-shell">
+  <header class="tag-header">
+    <a class="brand" routerLink="/login" aria-label="PetLink">
+      <mat-icon>pets</mat-icon>
+      <span>PetLink</span>
+    </a>
+  </header>
+
+  @if (loading()) {
+    <section class="state-panel" aria-label="Cargando información de mascota">
+      <mat-progress-spinner diameter="46" mode="indeterminate" />
+    </section>
+  } @else if (tag(); as currentTag) {
+    @if (pet(); as currentPet) {
+      <section class="pet-profile" [class.lost-profile]="currentTag.isLost">
+        <div class="pet-photo">
+          @if (currentPet.photoUrl) {
+            <img [src]="currentPet.photoUrl" [alt]="'Foto de ' + currentPet.name" />
+          } @else {
+            <mat-icon aria-hidden="true">{{
+              currentPet.species === 'Gato' ? 'cruelty_free' : 'pets'
+            }}</mat-icon>
+          }
+        </div>
+
+        <div class="pet-copy">
+          <p class="eyebrow">
+            {{ currentTag.isLost ? 'Mascota extraviada' : 'Mascota identificada' }}
+          </p>
+          <h1>{{ currentPet.name }}</h1>
+          <p class="pet-summary">
+            {{ currentPet.species }}{{ currentPet.breed ? ' · ' + currentPet.breed : '' }}
+          </p>
+
+          <dl>
+            <div>
+              <dt>Color</dt>
+              <dd>{{ currentPet.color || 'Sin registrar' }}</dd>
+            </div>
+            <div>
+              <dt>Sexo</dt>
+              <dd>{{ currentPet.sex || 'Sin registrar' }}</dd>
+            </div>
+          </dl>
+
+          @if (currentTag.isLost) {
+            <p class="lost-message">
+              {{ currentTag.lostMessage || 'Su propietario está buscando esta mascota.' }}
+            </p>
+          }
+
+          @if (currentTag.ownerPhone) {
+            <a mat-flat-button class="call-owner" [href]="phoneHref(currentTag.ownerPhone)">
+              <mat-icon>call</mat-icon>
+              <span>Llamar al propietario</span>
+            </a>
+          }
+        </div>
+      </section>
+
+      <section class="report-panel" aria-labelledby="report-title">
+        @if (reportSent()) {
+          <div class="success-state" role="status">
+            <mat-icon>check_circle</mat-icon>
+            <h2 id="report-title">Reporte enviado</h2>
+            <p>El propietario podrá ver la información y ubicación que compartiste.</p>
+          </div>
+        } @else {
+          <div class="report-heading">
+            <p class="eyebrow">Avisar al propietario</p>
+            <h2 id="report-title">Encontré o vi a {{ currentPet.name }}</h2>
+          </div>
+
+          <form [formGroup]="form" (ngSubmit)="submitReport()" novalidate>
+            <div class="form-grid">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Tu nombre</mat-label>
+                <mat-icon matPrefix>person</mat-icon>
+                <input matInput type="text" formControlName="reporterName" autocomplete="name" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Tu teléfono</mat-label>
+                <mat-icon matPrefix>phone</mat-icon>
+                <input matInput type="tel" formControlName="reporterPhone" autocomplete="tel" />
+              </mat-form-field>
+
+              <mat-form-field class="wide-field" appearance="outline" subscriptSizing="dynamic">
+                <mat-label>¿Dónde y cuándo la viste?</mat-label>
+                <mat-icon matPrefix>description</mat-icon>
+                <textarea matInput rows="4" formControlName="message"></textarea>
+                @if (
+                  form.controls.message.hasError('required') ||
+                  form.controls.message.hasError('minlength')
+                ) {
+                  <mat-error>Describe el hallazgo con al menos 5 caracteres.</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field class="wide-field" appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Referencia del lugar</mat-label>
+                <mat-icon matPrefix>place</mat-icon>
+                <input
+                  matInput
+                  type="text"
+                  formControlName="locationDescription"
+                  placeholder="Ej. frente al parque central"
+                />
+              </mat-form-field>
+            </div>
+
+            <div class="location-row">
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="locating()"
+                (click)="shareLocation()"
+              >
+                <mat-icon>my_location</mat-icon>
+                <span>{{ locating() ? 'Obteniendo ubicación...' : 'Compartir mi ubicación' }}</span>
+              </button>
+              @if (sharedLocation()) {
+                <button mat-button type="button" (click)="clearLocation()">Quitar</button>
+              }
+            </div>
+
+            @if (locationFeedback()) {
+              <p class="location-feedback" role="status">{{ locationFeedback() }}</p>
+            }
+
+            @if (feedback()) {
+              <p class="error-feedback" role="alert">{{ feedback() }}</p>
+            }
+
+            <button mat-flat-button class="submit-report" type="submit" [disabled]="submitting()">
+              <mat-icon>send</mat-icon>
+              <span>{{ submitting() ? 'Enviando...' : 'Enviar reporte' }}</span>
+            </button>
+          </form>
+        }
+      </section>
+    }
+  } @else {
+    <section class="state-panel error-state">
+      <mat-icon>qr_code_scanner</mat-icon>
+      <h1>QR no disponible</h1>
+      <p>{{ feedback() }}</p>
+    </section>
+  }
+</main>

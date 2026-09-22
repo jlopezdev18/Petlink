@@ -8,6 +8,8 @@ from app.api.auth import router as auth_router
 from app.api.caregivers import router as caregivers_router
 from app.api.guest_access import router as guest_access_router
 from app.api.medications import router as medications_router
+from app.api.pet_tags import owner_router as pet_tags_owner_router
+from app.api.pet_tags import public_router as pet_tags_public_router
 from app.api.pets import router as pets_router
 from app.api.prescriptions import router as prescriptions_router
 from app.api.profiles import router as profiles_router
@@ -31,6 +33,8 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(profiles_router)
 app.include_router(pets_router)
+app.include_router(pet_tags_owner_router)
+app.include_router(pet_tags_public_router)
 app.include_router(caregivers_router)
 app.include_router(guest_access_router)
 app.include_router(medications_router)

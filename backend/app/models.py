@@ -62,6 +62,11 @@ class Pet(Base):
     caregivers: Mapped[list["PetCaregiver"]] = relationship(back_populates="pet", cascade="all, delete-orphan")
     access_codes: Mapped[list["PetAccessCode"]] = relationship(back_populates="pet", cascade="all, delete-orphan")
     prescriptions: Mapped[list["Prescription"]] = relationship(back_populates="pet", cascade="all, delete-orphan")
+    qr_tag: Mapped["PetQrTag | None"] = relationship(
+        back_populates="pet",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
 
 
 class PetCaregiver(Base):
@@ -107,6 +112,47 @@ class PetAccessCode(Base):
 
     pet: Mapped[Pet] = relationship(back_populates="access_codes")
     owner: Mapped[Profile] = relationship(back_populates="access_codes_given", foreign_keys=[owner_id])
+
+
+class PetQrTag(Base):
+    __tablename__ = "pet_qr_tags"
+    __table_args__ = (UniqueConstraint("pet_id"), UniqueConstraint("token"))
+
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
+    pet_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), ForeignKey("pets.id"))
+    owner_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), ForeignKey("profiles.id"))
+    token: Mapped[str] = mapped_column(Text)
+    is_lost: Mapped[bool] = mapped_column(Boolean, default=False)
+    lost_message: Mapped[str | None] = mapped_column(Text)
+    show_owner_phone: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    pet: Mapped[Pet] = relationship(back_populates="qr_tag")
+    owner: Mapped[Profile] = relationship(foreign_keys=[owner_id])
+    sighting_reports: Mapped[list["PetSightingReport"]] = relationship(
+        back_populates="qr_tag",
+        cascade="all, delete-orphan",
+    )
+
+
+class PetSightingReport(Base):
+    __tablename__ = "pet_sighting_reports"
+
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
+    qr_tag_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), ForeignKey("pet_qr_tags.id"))
+    status: Mapped[str] = mapped_column(Text, default="pending")
+    reporter_name: Mapped[str | None] = mapped_column(Text)
+    reporter_phone: Mapped[str | None] = mapped_column(Text)
+    message: Mapped[str] = mapped_column(Text)
+    location_description: Mapped[str | None] = mapped_column(Text)
+    latitude: Mapped[float | None] = mapped_column(Numeric(9, 6))
+    longitude: Mapped[float | None] = mapped_column(Numeric(9, 6))
+    accuracy_meters: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    qr_tag: Mapped[PetQrTag] = relationship(back_populates="sighting_reports")
 
 
 class Medication(Base):

@@ -8,6 +8,8 @@ This folder contains the first database schema for PetLink.
 - `pets`: pets owned by a user.
 - `pet_caregivers`: authorized caregiver access for a pet.
 - `pet_access_codes`: temporary guest access codes for caregivers who do not register.
+- `pet_qr_tags`: one permanent public QR token and owner-controlled lost/contact settings per pet.
+- `pet_sighting_reports`: finder reports, optional contact details, and optional GPS coordinates submitted through FastAPI.
 - `medications`: active or historical medications for a pet.
 - `prescriptions`: owner-only digital prescriptions uploaded as PDF or image.
 - `medication_logs`: scheduled/given/skipped medication events.
@@ -27,6 +29,8 @@ Profiles also store `account_type` as `owner` or `caregiver` to tailor the login
 Owners can authorize caregivers in `pet_caregivers`. A caregiver must also have a row in `profiles`, so they must already be a registered Supabase Auth user.
 
 Owners can also create temporary guest codes in `pet_access_codes`. Codes are stored as hashes, can be revoked, and expire at the owner-selected time. Guest code access is intentionally narrower than registered caregiver access: guests can view the authorized pet and active medications, then mark a medication as given through the backend API.
+
+Permanent pet QR tokens do not expire and are backfilled for existing pets. Public QR lookup and report submission go through FastAPI; the new tables do not grant direct `anon` Data API access. Authenticated owners can read their rows under RLS, while column grants prevent changing permanent tokens or report content through the Data API.
 
 Caregiver permissions are stored per pet:
 

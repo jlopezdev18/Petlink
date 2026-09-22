@@ -14,8 +14,16 @@
     var(--petlink-paw-pattern),
     linear-gradient(135deg, var(--petlink-dashboard-teal-glow), transparent 32%),
     linear-gradient(315deg, var(--petlink-dashboard-purple-glow), transparent 38%),
-    repeating-linear-gradient(90deg, var(--petlink-dashboard-grid-line-x) 0 1px, transparent 1px 78px),
-    repeating-linear-gradient(0deg, var(--petlink-dashboard-grid-line-y) 0 1px, transparent 1px 78px);
+    repeating-linear-gradient(
+      90deg,
+      var(--petlink-dashboard-grid-line-x) 0 1px,
+      transparent 1px 78px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      var(--petlink-dashboard-grid-line-y) 0 1px,
+      transparent 1px 78px
+    );
 }
 
 .dashboard-content {
@@ -83,6 +91,28 @@ h1 {
   background: var(--petlink-feedback-bg);
   color: var(--petlink-feedback-text);
   font-size: 14px;
+}
+
+.sighting-alert {
+  width: min(1180px, 100%);
+  min-height: 48px;
+  margin: 0 auto 18px;
+  padding: 11px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--petlink-danger) 45%, var(--petlink-line));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--petlink-danger) 9%, var(--petlink-surface));
+  color: var(--petlink-ink);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sighting-alert mat-icon {
+  color: var(--petlink-danger);
 }
 
 .pets-loading {
@@ -206,6 +236,7 @@ mat-form-field {
 
 .view-card-button,
 .edit-card-button,
+.qr-card-button,
 .delete-card-button {
   width: 38px;
   height: 38px;
@@ -220,6 +251,7 @@ mat-form-field {
 
 .view-card-button mat-icon,
 .edit-card-button mat-icon,
+.qr-card-button mat-icon,
 .delete-card-button mat-icon {
   width: 20px;
   height: 20px;
@@ -234,6 +266,10 @@ mat-form-field {
 
 .edit-card-button:hover {
   color: var(--petlink-purple);
+}
+
+.qr-card-button:hover {
+  color: var(--petlink-teal);
 }
 
 .delete-card-button:hover {
@@ -265,7 +301,11 @@ mat-form-field {
   place-items: center;
   overflow: hidden;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--pet-card-accent) 18%, transparent), var(--petlink-pet-photo-overlay)),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--pet-card-accent) 18%, transparent),
+      var(--petlink-pet-photo-overlay)
+    ),
     var(--pet-card-photo);
   color: var(--pet-card-accent);
 }
@@ -317,6 +357,28 @@ mat-form-field {
 
 .pet-info .pet-ownership-badge {
   margin: 2px 0 10px;
+}
+
+.sighting-badge {
+  margin: 0 0 10px;
+  padding: 5px 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid color-mix(in srgb, var(--petlink-danger) 42%, var(--petlink-line));
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--petlink-danger) 9%, var(--pet-card-surface));
+  color: var(--petlink-danger);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.sighting-badge mat-icon {
+  width: 17px;
+  height: 17px;
+  font-size: 17px;
 }
 
 .pet-info p,

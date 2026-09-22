@@ -21,6 +21,7 @@ export interface Pet {
   isOwner: boolean;
   canUpdatePet: boolean;
   canManageMedications: boolean;
+  pendingSightingReports: number;
 }
 
 export interface PetFormPayload {

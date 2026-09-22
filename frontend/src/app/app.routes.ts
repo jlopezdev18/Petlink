@@ -13,7 +13,13 @@ export const routes: Routes = [
   },
   {
     path: 'acceso-cuidador',
-    loadComponent: () => import('./pages/guest-access/guest-access').then((page) => page.GuestAccessPage),
+    loadComponent: () =>
+      import('./pages/guest-access/guest-access').then((page) => page.GuestAccessPage),
+  },
+  {
+    path: 'qr-mascota/:token',
+    title: 'Mascota encontrada | PetLink',
+    loadComponent: () => import('./pages/pet-tag/pet-tag').then((page) => page.PetTagPage),
   },
   {
     path: 'inicio',
@@ -28,17 +34,20 @@ export const routes: Routes = [
   {
     path: 'cuidadores',
     canActivate: [authGuard],
-    loadComponent: () => import('./pages/caregivers/caregivers').then((page) => page.CaregiversPage),
+    loadComponent: () =>
+      import('./pages/caregivers/caregivers').then((page) => page.CaregiversPage),
   },
   {
     path: 'medicamentos',
     canActivate: [authGuard],
-    loadComponent: () => import('./pages/medications/medications').then((page) => page.MedicationsPage),
+    loadComponent: () =>
+      import('./pages/medications/medications').then((page) => page.MedicationsPage),
   },
   {
     path: 'recetas',
     canActivate: [authGuard],
-    loadComponent: () => import('./pages/prescriptions/prescriptions').then((page) => page.PrescriptionsPage),
+    loadComponent: () =>
+      import('./pages/prescriptions/prescriptions').then((page) => page.PrescriptionsPage),
   },
   {
     path: 'perfil',
