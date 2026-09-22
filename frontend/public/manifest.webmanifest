@@ -1,8 +1,8 @@
 {
   "name": "PetLink",
   "short_name": "PetLink",
-  "theme_color": "#005cbb",
-  "background_color": "#ffffff",
+  "theme_color": "#0f8f83",
+  "background_color": "#f7f9fd",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",

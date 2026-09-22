@@ -42,6 +42,12 @@ export class MedicationNotificationsService {
     this.permission.set(permission);
 
     if (permission === 'granted') {
+      await this.showNotification('Avisos de PetLink activados', {
+        body: 'Te avisaremos cuando una dosis programada esté pendiente.',
+        icon: 'icons/icon-192x192.png',
+        badge: 'icons/icon-96x96.png',
+        tag: 'petlink:notifications-enabled',
+      });
       await this.checkDueMedications();
     }
 
@@ -87,16 +93,21 @@ export class MedicationNotificationsService {
       tag: occurrenceKey,
     };
 
+    await this.showNotification(`Dosis de ${medication.name}`, options);
+
+    localStorage.setItem(storageKey, Date.now().toString());
+  }
+
+  private async showNotification(title: string, options: NotificationOptions): Promise<void> {
     const registration =
       'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : undefined;
 
     if (registration) {
-      await registration.showNotification(`Dosis de ${medication.name}`, options);
-    } else {
-      new Notification(`Dosis de ${medication.name}`, options);
+      await registration.showNotification(title, options);
+      return;
     }
 
-    localStorage.setItem(storageKey, Date.now().toString());
+    new Notification(title, options);
   }
 
   private readPermission(): MedicationNotificationPermission {
