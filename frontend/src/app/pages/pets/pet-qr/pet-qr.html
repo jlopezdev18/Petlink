@@ -8,7 +8,7 @@
       <mat-progress-spinner diameter="42" mode="indeterminate" />
     </div>
   } @else if (tag(); as currentTag) {
-    <mat-tab-group animationDuration="180ms">
+    <mat-tab-group animationDuration="180ms" [selectedIndex]="initialTabIndex()">
       <mat-tab label="Código QR">
         <div class="tab-content qr-layout">
           <section class="qr-preview" aria-label="Código QR permanente">

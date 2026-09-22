@@ -30,6 +30,15 @@
       </p>
     }
 
+    @if (reportPet(); as pet) {
+      <app-pet-qr
+        [pet]="pet"
+        initialTab="reports"
+        (closed)="closeReports()"
+        (pendingCountChanged)="updatePendingReportCount(pet.id, $event)"
+      />
+    }
+
     @if (!loading()) {
       <section class="metrics" aria-label="Resumen general">
         <article class="metric-item">
@@ -96,7 +105,19 @@
                     sin revisar
                   </p>
                 </div>
-                <span class="status-label urgent">Pendiente</span>
+                <div class="attention-actions">
+                  <span class="status-label urgent">Pendiente</span>
+                  <button
+                    mat-icon-button
+                    class="report-view-button"
+                    type="button"
+                    [attr.aria-label]="'Ver reportes de ' + pet.name"
+                    [attr.title]="'Ver reportes de ' + pet.name"
+                    (click)="openReports(pet)"
+                  >
+                    <mat-icon>visibility</mat-icon>
+                  </button>
+                </div>
               </article>
             }
 

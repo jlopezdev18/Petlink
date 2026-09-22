@@ -40,6 +40,7 @@ import { environment } from '../../../../environments/environment';
 })
 export class PetQr implements OnInit {
   readonly pet = input.required<Pet>();
+  readonly initialTab = input<'qr' | 'reports'>('qr');
   readonly closed = output<void>();
   readonly pendingCountChanged = output<number>();
 
@@ -57,6 +58,7 @@ export class PetQr implements OnInit {
   protected readonly pendingReportCount = computed(
     () => this.reports().filter((report) => report.status === 'pending').length,
   );
+  protected readonly initialTabIndex = computed(() => (this.initialTab() === 'reports' ? 1 : 0));
 
   protected readonly settingsForm = this.formBuilder.nonNullable.group({
     isLost: false,

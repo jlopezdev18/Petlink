@@ -299,6 +299,20 @@ h1 {
   color: #d5962d;
 }
 
+.attention-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.report-view-button {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  color: var(--petlink-teal);
+}
+
 .all-clear,
 .empty-pets {
   min-height: 100px;
@@ -438,6 +452,11 @@ h1 {
   .status-label {
     grid-column: 2;
     justify-self: start;
+  }
+
+  .attention-actions {
+    grid-column: 2;
+    justify-content: flex-start;
   }
 }
 

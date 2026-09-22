@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { firstValueFrom } from 'rxjs';
@@ -7,10 +8,11 @@ import { DueMedication, MedicationsApiService } from '../../core/medications-api
 import { Pet, PetsApiService } from '../../core/pets-api.service';
 import { Profile, ProfileApiService } from '../../core/profile-api.service';
 import { Sidebar } from '../../shared/sidebar/sidebar';
+import { PetQr } from '../pets/pet-qr/pet-qr';
 
 @Component({
   selector: 'app-home-page',
-  imports: [Sidebar, MatIconModule, MatProgressSpinnerModule],
+  imports: [Sidebar, PetQr, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './home.html',
   styleUrl: './home.css',
 })
@@ -24,6 +26,7 @@ export class HomePage implements OnInit {
   protected readonly profile = signal<Profile | null>(null);
   protected readonly pets = signal<Pet[]>([]);
   protected readonly dueMedications = signal<DueMedication[]>([]);
+  protected readonly reportPet = signal<Pet | null>(null);
   protected readonly accessUpdated = signal(Boolean(window.history.state?.accessUpdated));
 
   protected readonly firstName = computed(() => {
@@ -59,6 +62,25 @@ export class HomePage implements OnInit {
       dateStyle: 'medium',
       timeStyle: 'short',
     }).format(new Date(value));
+  }
+
+  protected openReports(pet: Pet): void {
+    this.reportPet.set(pet);
+  }
+
+  protected closeReports(): void {
+    this.reportPet.set(null);
+  }
+
+  protected updatePendingReportCount(petId: string, pendingCount: number): void {
+    this.pets.update((pets) =>
+      pets.map((pet) =>
+        pet.id === petId ? { ...pet, pendingSightingReports: pendingCount } : pet,
+      ),
+    );
+    this.reportPet.update((pet) =>
+      pet?.id === petId ? { ...pet, pendingSightingReports: pendingCount } : pet,
+    );
   }
 
   private async loadDashboard(): Promise<void> {
