@@ -3,45 +3,174 @@
 
   <main class="dashboard-content" aria-label="Inicio">
     @if (accessUpdated()) {
-      <p class="access-feedback" role="status">
+      <p class="status-message access-feedback" role="status">
         <mat-icon>policy</mat-icon>
         El propietario actualizo o revoco uno de tus accesos.
       </p>
     }
 
-    <section class="welcome-panel" aria-labelledby="home-title">
+    <header class="home-header" aria-labelledby="home-title">
       <div>
-        <p class="eyebrow">PetLink</p>
+        <p class="eyebrow">{{ todayLabel }}</p>
+        <h1 id="home-title">Hola, {{ firstName() }}</h1>
+        <p class="summary">Este es el estado actual del cuidado de tus mascotas.</p>
+      </div>
 
-        @if (loading()) {
-          <div class="welcome-loading">
-            <mat-progress-spinner diameter="34" mode="indeterminate" />
+      @if (loading()) {
+        <div class="loading-indicator" aria-label="Cargando resumen">
+          <mat-progress-spinner diameter="38" mode="indeterminate" />
+        </div>
+      }
+    </header>
+
+    @if (loadError()) {
+      <p class="status-message data-warning" role="status">
+        <mat-icon>cloud_off</mat-icon>
+        Parte de la informacion no pudo actualizarse. Los datos disponibles se muestran abajo.
+      </p>
+    }
+
+    @if (!loading()) {
+      <section class="metrics" aria-label="Resumen general">
+        <article class="metric-item">
+          <span class="metric-icon pets-icon" aria-hidden="true"><mat-icon>pets</mat-icon></span>
+          <div>
+            <strong>{{ pets().length }}</strong>
+            <span>{{ pets().length === 1 ? 'Mascota registrada' : 'Mascotas registradas' }}</span>
+          </div>
+        </article>
+
+        <article class="metric-item" [class.needs-attention]="pendingReportCount() > 0">
+          <span class="metric-icon reports-icon" aria-hidden="true">
+            <mat-icon>location_on</mat-icon>
+          </span>
+          <div>
+            <strong>{{ pendingReportCount() }}</strong>
+            <span>{{
+              pendingReportCount() === 1 ? 'Reporte pendiente' : 'Reportes pendientes'
+            }}</span>
+          </div>
+        </article>
+
+        <article class="metric-item" [class.needs-attention]="dueMedications().length > 0">
+          <span class="metric-icon medication-icon" aria-hidden="true">
+            <mat-icon>medication</mat-icon>
+          </span>
+          <div>
+            <strong>{{ dueMedications().length }}</strong>
+            <span>{{
+              dueMedications().length === 1 ? 'Dosis pendiente' : 'Dosis pendientes'
+            }}</span>
+          </div>
+        </article>
+      </section>
+
+      <section class="dashboard-section attention-section" aria-labelledby="attention-title">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Seguimiento</p>
+            <h2 id="attention-title">Necesita atencion</h2>
+          </div>
+          @if (hasAttentionItems()) {
+            <span class="attention-total">
+              {{ pendingReportCount() + dueMedications().length }} pendiente{{
+                pendingReportCount() + dueMedications().length === 1 ? '' : 's'
+              }}
+            </span>
+          }
+        </div>
+
+        @if (hasAttentionItems()) {
+          <div class="attention-list">
+            @for (pet of petsWithPendingReports(); track pet.id) {
+              <article class="attention-row report-row">
+                <span class="attention-icon" aria-hidden="true">
+                  <mat-icon>notification_important</mat-icon>
+                </span>
+                <div class="attention-copy">
+                  <h3>Reporte de hallazgo para {{ pet.name }}</h3>
+                  <p>
+                    {{ pet.pendingSightingReports }} reporte{{
+                      pet.pendingSightingReports === 1 ? '' : 's'
+                    }}
+                    sin revisar
+                  </p>
+                </div>
+                <span class="status-label urgent">Pendiente</span>
+              </article>
+            }
+
+            @for (medication of dueMedications(); track medication.id) {
+              <article class="attention-row medication-row">
+                <span class="attention-icon" aria-hidden="true"><mat-icon>schedule</mat-icon></span>
+                <div class="attention-copy">
+                  <h3>{{ medication.name }} para {{ medication.petName }}</h3>
+                  <p>{{ medication.dosage }} · {{ formatDoseTime(medication.nextDoseAt) }}</p>
+                </div>
+                <span class="status-label due">Dosis pendiente</span>
+              </article>
+            }
           </div>
         } @else {
-          <h1 id="home-title">Hi, {{ firstName() }}</h1>
+          <div class="all-clear">
+            <mat-icon aria-hidden="true">check_circle</mat-icon>
+            <div>
+              <h3>Todo esta al dia</h3>
+              <p>No hay reportes de hallazgo ni dosis pendientes en este momento.</p>
+            </div>
+          </div>
         }
+      </section>
 
-        <p class="summary">Bienvenido a tu espacio para cuidar mascotas.</p>
-      </div>
+      <section class="dashboard-section pets-section" aria-labelledby="pets-title">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Familia</p>
+            <h2 id="pets-title">Tus mascotas</h2>
+          </div>
+          @if (pets().length > petsPreview().length) {
+            <span class="section-count"
+              >Mostrando {{ petsPreview().length }} de {{ pets().length }}</span
+            >
+          }
+        </div>
 
-      <div class="quick-actions" aria-label="Accesos rapidos">
-        <a mat-flat-button class="primary-action" routerLink="/mascotas">
-          <mat-icon>pets</mat-icon>
-          <span>Mascotas</span>
-        </a>
-        <a mat-stroked-button routerLink="/perfil">
-          <mat-icon>person_outline</mat-icon>
-          <span>Perfil</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="home-grid" aria-label="Resumen">
-      <article>
-        <mat-icon>favorite_border</mat-icon>
-        <h2>Cuidado centralizado</h2>
-        <p>Consulta y actualiza la informacion importante desde un solo lugar.</p>
-      </article>
-    </section>
+        @if (petsPreview().length) {
+          <div class="pet-grid">
+            @for (pet of petsPreview(); track pet.id) {
+              <article class="pet-card">
+                <div class="pet-photo">
+                  @if (pet.photoUrl) {
+                    <img [src]="pet.photoUrl" [alt]="'Foto de ' + pet.name" />
+                  } @else {
+                    <mat-icon aria-hidden="true">{{ speciesIcon(pet.species) }}</mat-icon>
+                  }
+                  @if (pet.pendingSightingReports > 0) {
+                    <span class="pet-alert" aria-label="Reportes pendientes">
+                      {{ pet.pendingSightingReports }}
+                    </span>
+                  }
+                </div>
+                <div class="pet-info">
+                  <h3>{{ pet.name }}</h3>
+                  <p>{{ pet.species }}{{ pet.breed ? ' · ' + pet.breed : '' }}</p>
+                  <span [class.assigned]="!pet.isOwner">
+                    {{ pet.isOwner ? 'Propia' : 'Asignada' }}
+                  </span>
+                </div>
+              </article>
+            }
+          </div>
+        } @else {
+          <div class="empty-pets">
+            <mat-icon aria-hidden="true">pets</mat-icon>
+            <div>
+              <h3>Aun no hay mascotas registradas</h3>
+              <p>Cuando registres una mascota, su resumen aparecera aqui.</p>
+            </div>
+          </div>
+        }
+      </section>
+    }
   </main>
 </div>

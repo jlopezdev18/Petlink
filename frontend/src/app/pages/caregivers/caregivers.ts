@@ -12,12 +12,12 @@ import { firstValueFrom } from 'rxjs';
 import {
   AccessCode,
   CaregiverAccess,
-  CaregiverPreset,
   CaregiversApiService,
   CreatedAccessCode,
 } from '../../core/caregivers-api.service';
 import { AuthService } from '../../core/auth.service';
 import { Pet, PetsApiService } from '../../core/pets-api.service';
+import { EntityModal } from '../../shared/entity-modal/entity-modal';
 import { Sidebar } from '../../shared/sidebar/sidebar';
 
 @Component({
@@ -32,6 +32,7 @@ import { Sidebar } from '../../shared/sidebar/sidebar';
     MatInputModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    EntityModal,
   ],
   templateUrl: './caregivers.html',
   styleUrl: './caregivers.css',
@@ -45,6 +46,7 @@ export class CaregiversPage implements OnInit {
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
   protected readonly feedback = signal('');
+  protected readonly editFeedback = signal('');
   protected readonly pets = signal<Pet[]>([]);
   protected readonly caregivers = signal<CaregiverAccess[]>([]);
   protected readonly accessCodes = signal<AccessCode[]>([]);
@@ -52,14 +54,20 @@ export class CaregiversPage implements OnInit {
   protected readonly editingCaregiver = signal<CaregiverAccess | null>(null);
 
   protected readonly ownerPets = computed(() => this.pets().filter((pet) => pet.isOwner));
-  protected readonly receivedAccess = computed(() => this.caregivers().filter((caregiver) => !caregiver.isOwner));
-  protected readonly ownedAccess = computed(() => this.caregivers().filter((caregiver) => caregiver.isOwner));
+  protected readonly receivedAccess = computed(() =>
+    this.caregivers().filter((caregiver) => !caregiver.isOwner),
+  );
+  protected readonly ownedAccess = computed(() =>
+    this.caregivers().filter((caregiver) => caregiver.isOwner),
+  );
   protected readonly isOwnerMode = computed(() => this.authService.accountType === 'owner');
 
   protected readonly form = this.formBuilder.nonNullable.group({
     petId: ['', Validators.required],
     caregiverEmail: ['', [Validators.required, Validators.email]],
-    preset: ['caregiver' as CaregiverPreset, Validators.required],
+    notes: [''],
+  });
+  protected readonly editForm = this.formBuilder.nonNullable.group({
     notes: [''],
   });
   protected readonly accessCodeForm = this.formBuilder.nonNullable.group({
@@ -75,19 +83,16 @@ export class CaregiversPage implements OnInit {
   protected editCaregiver(caregiver: CaregiverAccess): void {
     this.editingCaregiver.set(caregiver);
     this.feedback.set('');
-    this.form.reset({
-      petId: caregiver.petId,
-      caregiverEmail: caregiver.caregiverEmail ?? '',
-      preset: caregiver.preset,
+    this.editFeedback.set('');
+    this.editForm.reset({
       notes: caregiver.notes,
     });
-    this.form.controls.petId.disable();
-    this.form.controls.caregiverEmail.disable();
   }
 
   protected cancelEdit(): void {
     this.editingCaregiver.set(null);
-    this.resetForm();
+    this.editFeedback.set('');
+    this.editForm.reset({ notes: '' });
   }
 
   protected async submit(): Promise<void> {
@@ -102,36 +107,52 @@ export class CaregiversPage implements OnInit {
     this.submitting.set(true);
 
     try {
-      const editingCaregiver = this.editingCaregiver();
-
-      if (editingCaregiver) {
-        const updatedAccess = await firstValueFrom(
-          this.caregiversApiService.updateCaregiver(editingCaregiver.id, {
-            preset: rawAccess.preset,
-            notes: rawAccess.notes.trim(),
-          }),
-        );
-        this.caregivers.update((caregivers) =>
-          caregivers.map((caregiver) => (caregiver.id === updatedAccess.id ? updatedAccess : caregiver)),
-        );
-        this.feedback.set('Permisos del cuidador actualizados.');
-      } else {
-        const createdAccess = await firstValueFrom(
-          this.caregiversApiService.createCaregiver({
-            petId: rawAccess.petId,
-            caregiverEmail: rawAccess.caregiverEmail.trim().toLowerCase(),
-            preset: rawAccess.preset,
-            notes: rawAccess.notes.trim(),
-          }),
-        );
-        this.caregivers.update((caregivers) => [createdAccess, ...caregivers]);
-        this.feedback.set('Cuidador autorizado correctamente.');
-      }
-
-      this.editingCaregiver.set(null);
+      const createdAccess = await firstValueFrom(
+        this.caregiversApiService.createCaregiver({
+          petId: rawAccess.petId,
+          caregiverEmail: rawAccess.caregiverEmail.trim().toLowerCase(),
+          notes: rawAccess.notes.trim(),
+        }),
+      );
+      this.caregivers.update((caregivers) => [createdAccess, ...caregivers]);
+      this.feedback.set('Cuidador autorizado correctamente.');
       this.resetForm();
     } catch {
-      this.feedback.set('No pudimos guardar el cuidador. Verifica que el email pertenezca a un usuario registrado.');
+      this.feedback.set(
+        'No pudimos guardar el cuidador. Verifica que el email pertenezca a un usuario registrado.',
+      );
+    } finally {
+      this.submitting.set(false);
+    }
+  }
+
+  protected async submitEdit(): Promise<void> {
+    const editingCaregiver = this.editingCaregiver();
+    this.editForm.markAllAsTouched();
+
+    if (!editingCaregiver || this.editForm.invalid || this.submitting()) {
+      return;
+    }
+
+    const rawAccess = this.editForm.getRawValue();
+    this.submitting.set(true);
+    this.editFeedback.set('');
+
+    try {
+      const updatedAccess = await firstValueFrom(
+        this.caregiversApiService.updateCaregiver(editingCaregiver.id, {
+          notes: rawAccess.notes.trim(),
+        }),
+      );
+      this.caregivers.update((caregivers) =>
+        caregivers.map((caregiver) =>
+          caregiver.id === updatedAccess.id ? updatedAccess : caregiver,
+        ),
+      );
+      this.feedback.set('Permisos del cuidador actualizados.');
+      this.cancelEdit();
+    } catch {
+      this.editFeedback.set('No pudimos actualizar los permisos del cuidador.');
     } finally {
       this.submitting.set(false);
     }
@@ -147,8 +168,12 @@ export class CaregiversPage implements OnInit {
 
     try {
       await firstValueFrom(this.caregiversApiService.deleteCaregiver(caregiver.id));
-      this.caregivers.update((caregivers) => caregivers.filter((currentCaregiver) => currentCaregiver.id !== caregiver.id));
-      this.feedback.set(caregiver.isOwner ? 'Acceso revocado.' : 'Saliste de este acceso compartido.');
+      this.caregivers.update((caregivers) =>
+        caregivers.filter((currentCaregiver) => currentCaregiver.id !== caregiver.id),
+      );
+      this.feedback.set(
+        caregiver.isOwner ? 'Acceso revocado.' : 'Saliste de este acceso compartido.',
+      );
     } catch {
       this.feedback.set('No pudimos revocar este acceso. Intenta de nuevo.');
     } finally {
@@ -240,14 +265,6 @@ export class CaregiversPage implements OnInit {
     return accessCode.revokedAt ? 'Revocado' : 'Vencido';
   }
 
-  protected presetLabel(preset: CaregiverPreset): string {
-    return {
-      viewer: 'Solo ver',
-      caregiver: 'Cuidador',
-      veterinarian: 'Veterinario',
-    }[preset];
-  }
-
   private async loadData(): Promise<void> {
     this.loading.set(true);
 
@@ -255,7 +272,9 @@ export class CaregiversPage implements OnInit {
       const [pets, caregivers, accessCodes] = await Promise.all([
         firstValueFrom(this.petsApiService.listPets()),
         firstValueFrom(this.caregiversApiService.listCaregivers()),
-        this.isOwnerMode() ? firstValueFrom(this.caregiversApiService.listAccessCodes()) : Promise.resolve([]),
+        this.isOwnerMode()
+          ? firstValueFrom(this.caregiversApiService.listAccessCodes())
+          : Promise.resolve([]),
       ]);
       this.pets.set(pets);
       this.caregivers.set(caregivers);
@@ -269,12 +288,9 @@ export class CaregiversPage implements OnInit {
   }
 
   private resetForm(): void {
-    this.form.controls.petId.enable();
-    this.form.controls.caregiverEmail.enable();
     this.form.reset({
       petId: this.ownerPets()[0]?.id ?? '',
       caregiverEmail: '',
-      preset: 'caregiver',
       notes: '',
     });
     this.accessCodeForm.reset({

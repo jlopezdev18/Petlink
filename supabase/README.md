@@ -44,7 +44,7 @@ Caregiver permissions are stored per pet:
 
 Owners can manage caregiver rows. Caregivers can read their own caregiver assignments and remove themselves.
 
-Digital prescriptions are private to the pet owner in v1. Caregivers can manage medications according to their preset, but they cannot view or manage prescriptions.
+Digital prescriptions are private to the pet owner in v1. Registered caregivers can view medication schedules, but they cannot manage medications or view prescriptions.
 
 Files should be uploaded to paths starting with the user's id:
 

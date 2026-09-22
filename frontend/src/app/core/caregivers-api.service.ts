@@ -4,7 +4,7 @@ import { Observable, catchError, shareReplay, tap, throwError } from 'rxjs';
 
 import { environment } from '../../environments/environment';
 
-export type CaregiverPreset = 'viewer' | 'caregiver' | 'veterinarian';
+export type CaregiverPreset = 'caregiver';
 
 export interface CaregiverAccess {
   id: string;
@@ -26,7 +26,6 @@ export interface CaregiverAccess {
 export interface CaregiverPayload {
   petId: string;
   caregiverEmail: string;
-  preset: CaregiverPreset;
   notes: string;
 }
 
@@ -78,7 +77,7 @@ export class CaregiversApiService {
 
   updateCaregiver(
     caregiverId: string,
-    payload: Pick<CaregiverPayload, 'preset' | 'notes'>,
+    payload: Pick<CaregiverPayload, 'notes'>,
   ): Observable<CaregiverAccess> {
     return this.http
       .put<CaregiverAccess>(`${this.baseUrl}/${caregiverId}`, payload)
